@@ -7,7 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -182,14 +181,12 @@ func unzip(source string) error {
 	if err != nil {
 		return err
 	}
-	//dirName := reader.File[0].Name
+	dirName := reader.File[0].Name
 	for _, file := range reader.File {
 		if file.Mode().IsDir() {
 			continue
 		}
-		//fileName := strings.Replace(file.Name, dirName, "disgo", 1)
-		fileName := file.Name
-		log.Println(fileName)
+		fileName := strings.Replace(file.Name, dirName, "disgo/", 1)
 		err = os.MkdirAll(path.Dir(fileName), os.ModeDir)
 		if err != nil {
 			return err
