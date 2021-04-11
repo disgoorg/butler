@@ -14,9 +14,9 @@ import (
 
 var logger = logrus.New()
 
-const (
-	disgoGuild = "817327181659111454"
-	adminRole  = "817327279583264788"
+var (
+	disgoGuild = api.Snowflake(os.Getenv("guild"))
+	adminRole  = api.Snowflake(os.Getenv("admin_role"))
 )
 
 func main() {
@@ -44,7 +44,6 @@ func main() {
 			return
 		}
 		logger.Infof("downloaded latest source from github")
-
 
 		logger.Infof("loading disgo packages...")
 		err = loadPackages()

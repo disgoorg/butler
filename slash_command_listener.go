@@ -36,7 +36,7 @@ func slashCommandListener(event *events.SlashCommandEvent) {
 			embed = api.NewEmbedBuilder().
 				SetColor(green).
 				SetTitle(title).
-				SetURL("https://pkg.go.dev/github.com/DisgoOrg/" + result.PackagePath + "#" + result.PackageName).
+				SetURL("https://pkg.go.dev/github.com/DisgoOrg/" + result.PackagePath + "#" + result.IdentifierName).
 				SetDescription(result.Comment).
 				Build()
 		}

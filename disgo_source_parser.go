@@ -73,42 +73,7 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 							Kind:           obj.Kind,
 						}
 						if obj.Kind == ast.Fun {
-							fDecl := obj.Decl.(*ast.FuncDecl)
-
-							params := ""
-							for i, field := range fDecl.Type.Params.List {
-								if i != 0 {
-									params += ", "
-								}
-								if len(field.Names) > 0 {
-									params += field.Names[0].Name + " "
-								}
-								expr := field.Type.(*ast.SelectorExpr)
-								params += expr.X.(*ast.Ident).Name + "." + expr.Sel.Name
-							}
-							if params != "" {
-								sourceInfo.Params = &params
-							}
-
-							results := ""
-							for i, field := range fDecl.Type.Results.List {
-								if i != 0 {
-									results += ", "
-								}
-								if len(field.Names) > 0 {
-									results += field.Names[0].Name + " "
-								}
-								switch x := field.Type.(type) {
-								case *ast.SelectorExpr:
-									results += x.X.(*ast.Ident).Name + "." + x.Sel.Name
-								case *ast.Ident:
-									results += x.Name
-								}
-
-							}
-							if results != "" {
-								sourceInfo.Results = &results
-							}
+							parseFunc(obj, sourceInfo)
 						}
 						return sourceInfo
 					}
@@ -118,6 +83,49 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 		}
 	}
 	return nil
+}
+
+func parseFunc(obj *ast.Object, sourceInfo *SourceInfo) {
+	fDecl := obj.Decl.(*ast.FuncDecl)
+
+	params := ""
+	for i, field := range fDecl.Type.Params.List {
+		if i != 0 {
+			params += ", "
+		}
+		if len(field.Names) > 0 {
+			params += field.Names[0].Name + " "
+		}
+		switch x := field.Type.(type) {
+		case *ast.SelectorExpr:
+			params += x.X.(*ast.Ident).Name + "." + x.Sel.Name
+		case *ast.Ident:
+			params += x.Name
+		}
+	}
+	if params != "" {
+		sourceInfo.Params = &params
+	}
+
+	results := ""
+	for i, field := range fDecl.Type.Results.List {
+		if i != 0 {
+			results += ", "
+		}
+		if len(field.Names) > 0 {
+			results += field.Names[0].Name + " "
+		}
+		switch x := field.Type.(type) {
+		case *ast.SelectorExpr:
+			results += x.X.(*ast.Ident).Name + "." + x.Sel.Name
+		case *ast.Ident:
+			results += x.Name
+		}
+
+	}
+	if results != "" {
+		sourceInfo.Results = &results
+	}
 }
 
 func loadPackages() error {
