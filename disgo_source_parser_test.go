@@ -11,6 +11,6 @@ func Test_searchSource(t *testing.T) {
 	err := loadPackages("../disgo")
 	assert.NoError(t, err)
 
-	result := findInPackages("api", "Cache")
+	result := findInPackages("disgo", "New")
 	log.Printf("%+v", result)
 }

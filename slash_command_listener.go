@@ -1,6 +1,8 @@
 package main
 
 import (
+	"go/ast"
+
 	"github.com/DisgoOrg/disgo/api"
 	"github.com/DisgoOrg/disgo/api/events"
 )
@@ -20,9 +22,20 @@ func slashCommandListener(event *events.SlashCommandEvent) {
 				SetDescriptionf("no result for: `%s#%s` found", event.Option("package"), event.Option("identifier")).
 				Build()
 		} else {
+			title := result.PackagePath + " - " + result.Kind.String() + " " + result.IdentifierName
+			if result.Kind == ast.Fun {
+				title += "("
+				if result.Params != nil {
+					title += *result.Params
+				}
+				title += ")"
+				if result.Results != nil {
+					title += " (" + *result.Results + ")"
+				}
+			}
 			embed = api.NewEmbedBuilder().
 				SetColor(green).
-				SetTitle(result.PackagePath + " - " + result.Kind+" "+result.IdentifierName).
+				SetTitle(title).
 				SetURL("https://pkg.go.dev/github.com/DisgoOrg/" + result.PackagePath + "#" + result.PackageName).
 				SetDescription(result.Comment).
 				Build()

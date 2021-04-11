@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -17,7 +18,9 @@ type SourceInfo struct {
 	PackagePath    string
 	IdentifierName string
 	Comment        string
-	Kind           string
+	Kind           ast.ObjKind
+	Params         *string
+	Results        *string
 }
 
 var filenameRegex = regexp.MustCompile(`/[^/.]+\.go$`)
@@ -27,11 +30,22 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 		if pck.Name == packageName {
 			for filePath, file := range pck.Files {
 				var lastPos token.Pos = 0
-				for key, identifier := range file.Scope.Objects {
-					if key == identifierName {
+				// make slice from file.Scope.Objects & sort after Pos
+				objects := make([]*ast.Object, len(file.Scope.Objects))
+				i := 0
+				for _, obj := range file.Scope.Objects {
+					objects[i] = obj
+					i++
+				}
+				sort.SliceStable(objects, func(i, j int) bool {
+					return objects[i].Pos() < objects[j].Pos()
+				})
+
+				for _, obj := range objects {
+					if obj.Name == identifierName {
 						comment := ""
 						for _, cmt := range file.Comments {
-							if cmt.Pos() >= lastPos && cmt.Pos() <= identifier.Pos() {
+							if cmt.Pos() > lastPos && cmt.Pos() < obj.Pos() {
 								comment += "\n" + cmt.Text()
 							}
 						}
@@ -40,15 +54,54 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 						packagePath = strings.Replace(packagePath, "../", "", 1)
 						packagePath = filenameRegex.ReplaceAllString(packagePath, "")
 
-						return &SourceInfo{
+						sourceInfo := &SourceInfo{
 							PackageName:    pck.Name,
 							PackagePath:    packagePath,
-							IdentifierName: identifier.Name,
+							IdentifierName: obj.Name,
 							Comment:        comment,
-							Kind:           identifier.Kind.String(),
+							Kind:           obj.Kind,
 						}
+						if obj.Kind == ast.Fun {
+							fDecl := obj.Decl.(*ast.FuncDecl)
+
+							params := ""
+							for i, field := range fDecl.Type.Params.List {
+								if i != 0 {
+									params += ", "
+								}
+								if len(field.Names) > 0 {
+									params += field.Names[0].Name + " "
+								}
+								expr := field.Type.(*ast.SelectorExpr)
+								params += expr.X.(*ast.Ident).Name + "." + expr.Sel.Name
+							}
+							if params != "" {
+								sourceInfo.Params = &params
+							}
+
+							results := ""
+							for i, field := range fDecl.Type.Results.List {
+								if i != 0 {
+									results += ", "
+								}
+								if len(field.Names) > 0 {
+									results += field.Names[0].Name + " "
+								}
+								switch x := field.Type.(type) {
+								case *ast.SelectorExpr:
+									results += x.X.(*ast.Ident).Name + "." + x.Sel.Name
+								case *ast.Ident:
+									results += x.Name
+								}
+
+							}
+							if results != "" {
+								sourceInfo.Results = &results
+							}
+						}
+						return sourceInfo
 					}
-					lastPos = identifier.Pos()
+					lastPos = obj.Pos()
 				}
 			}
 		}
