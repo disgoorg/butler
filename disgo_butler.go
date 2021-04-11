@@ -23,7 +23,7 @@ func main() {
 		logger.Errorf("error while loading disgo source: %s", err)
 	}
 
-	dgo, err := disgo.NewBuilder(endpoints.Token(os.Getenv("token"))).
+	dgo, err := disgo.NewBuilder(endpoints.Token(os.Getenv("disgo-butler-token"))).
 		SetLogger(logger).
 		SetIntents(api.IntentsGuilds | api.IntentsGuildMessages).
 		SetMemberCachePolicy(api.MemberCachePolicyNone).
