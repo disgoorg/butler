@@ -137,8 +137,14 @@ func loadPackages() error {
 		}
 		return nil
 	})
-	//_ = os.Remove("disgo.zip")
-	//_ = os.RemoveAll("disgo")
+	err = os.Remove("disgo.zip")
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll("disgo")
+	if err != nil {
+		return err
+	}
 	return err
 }
 
