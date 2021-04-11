@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -123,6 +124,9 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 func loadPackages() error {
 	fs := token.NewFileSet()
 	err := filepath.Walk("disgo", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.IsDir() {
 			packages, err := parser.ParseDir(fs, path, nil, parser.ParseComments|parser.AllErrors)
 			if err != nil {
@@ -178,12 +182,14 @@ func unzip(source string) error {
 	if err != nil {
 		return err
 	}
-	dirName := reader.File[0].Name
+	//dirName := reader.File[0].Name
 	for _, file := range reader.File {
 		if file.Mode().IsDir() {
 			continue
 		}
-		fileName := strings.Replace(file.Name, dirName, "disgo", 1)
+		//fileName := strings.Replace(file.Name, dirName, "disgo", 1)
+		fileName := file.Name
+		log.Println(fileName)
 		err = os.MkdirAll(path.Dir(fileName), os.ModeDir)
 		if err != nil {
 			return err
