@@ -61,7 +61,7 @@ func slashCommandListener(event *events.SlashCommandEvent) {
 					Build()
 			} else {
 				embed = api.NewEmbedBuilder().
-					SetColor(red).
+					SetColor(green).
 					SetDescription("✅ loaded latest disgo").
 					Build()
 			}
