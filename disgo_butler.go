@@ -14,16 +14,16 @@ import (
 
 var logger = logrus.New()
 
+const (
+	disgoGuild = "817327181659111454"
+	adminRole  = "817327279583264788"
+)
+
 func main() {
 	logger.SetLevel(logrus.InfoLevel)
 	logger.Info("starting disgo-butler...")
 
-	err := loadPackages("../disgo")
-	if err != nil {
-		logger.Errorf("error while loading disgo source: %s", err)
-	}
-
-	dgo, err := disgo.NewBuilder(endpoints.Token(os.Getenv("disgo-butler-token"))).
+	dgo, err := disgo.NewBuilder(endpoints.Token(os.Getenv("token"))).
 		SetLogger(logger).
 		SetIntents(api.IntentsGuilds | api.IntentsGuildMessages).
 		SetMemberCachePolicy(api.MemberCachePolicyNone).
@@ -36,9 +36,37 @@ func main() {
 		return
 	}
 
-	_, err = dgo.SetCommands(commands...)
+	go func() {
+		logger.Infof("downloading latest source from github...")
+		err := downloadDisgo(dgo.RestClient())
+		if err != nil {
+			logger.Errorf("error while downloading latest source from github: %s", err)
+			return
+		}
+		logger.Infof("downloaded latest source from github")
+
+
+		logger.Infof("loading disgo packages...")
+		err = loadPackages()
+		if err != nil {
+			logger.Errorf("error while loading disgo packages: %s", err)
+			return
+		}
+		logger.Infof("loaded disgo packages")
+	}()
+
+	cmds, err := dgo.SetCommands(commands...)
 	if err != nil {
 		logger.Errorf("error registering commands: %s", err)
+	}
+	for _, cmd := range cmds {
+		if cmd.Name == "reload-docs" {
+			_ = cmd.SetPermissions(disgoGuild, api.CommandPermission{
+				ID:         adminRole,
+				Type:       api.CommandPermissionTypeRole,
+				Permission: true,
+			})
+		}
 	}
 
 	err = dgo.Connect()

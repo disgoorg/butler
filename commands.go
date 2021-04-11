@@ -9,17 +9,22 @@ var commands = []api.Command{
 		DefaultPermission: true,
 		Options: []*api.CommandOption{
 			{
-				Name: "package",
+				Name:        "package",
 				Description: "the package to search in",
-				Type: api.CommandOptionTypeString,
-				Required: true,
+				Type:        api.CommandOptionTypeString,
+				Required:    true,
 			},
 			{
-				Name: "identifier",
+				Name:        "identifier",
 				Description: "the identifier to search for",
-				Type: api.CommandOptionTypeString,
-				Required: true,
+				Type:        api.CommandOptionTypeString,
+				Required:    true,
 			},
 		},
+	},
+	{
+		Name:              "reload-docs",
+		Description:       "reloads disog source",
+		DefaultPermission: false,
 	},
 }

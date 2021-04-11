@@ -41,5 +41,36 @@ func slashCommandListener(event *events.SlashCommandEvent) {
 				Build()
 		}
 		_ = event.Reply(api.NewInteractionResponseBuilder().SetEmbeds(embed).Build())
+
+	case "reload-docs":
+		go func() {
+			_ = event.Acknowledge()
+			var embed api.Embed
+
+			if err := downloadDisgo(event.Disgo().RestClient()); err != nil {
+				logger.Errorf("error while downloading latest source from github: %s", err)
+				embed = api.NewEmbedBuilder().
+					SetColor(red).
+					SetDescriptionf("❌ failed to download latest disgo: %s", err).
+					Build()
+			} else if err := loadPackages(); err != nil {
+				logger.Errorf("error while loading disgo packages: %s", err)
+				embed = api.NewEmbedBuilder().
+					SetColor(red).
+					SetDescriptionf("❌ failed to load latest disgo packages: %s", err).
+					Build()
+			} else {
+				embed = api.NewEmbedBuilder().
+					SetColor(red).
+					SetDescription("✅ loaded latest disgo").
+					Build()
+			}
+
+			_, _ = event.EditOriginal(api.NewFollowupMessageBuilder().
+				SetEmbeds(embed).
+				Build(),
+			)
+		}()
+
 	}
 }

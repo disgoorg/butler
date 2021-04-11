@@ -1,15 +1,26 @@
 package main
 
 import (
+	"archive/zip"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/DisgoOrg/disgo/api"
 )
+
+const disgoURL = "https://api.github.com/repos/DisgoOrg/disgo/releases/latest"
+
+var disgoGitInfo *GitInfo
 
 var Packages []*ast.Package
 
@@ -109,9 +120,9 @@ func findInPackages(packageName string, identifierName string) *SourceInfo {
 	return nil
 }
 
-func loadPackages(path string) error {
+func loadPackages() error {
 	fs := token.NewFileSet()
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk("disgo", func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			packages, err := parser.ParseDir(fs, path, nil, parser.ParseComments|parser.AllErrors)
 			if err != nil {
@@ -123,5 +134,72 @@ func loadPackages(path string) error {
 		}
 		return nil
 	})
+	//_ = os.Remove("disgo.zip")
+	//_ = os.RemoveAll("disgo")
 	return err
+}
+
+func downloadDisgo(restClient api.RestClient) error {
+	gitInfo, err := getGitInfo(restClient)
+	disgoGitInfo = gitInfo
+
+	rs, err := http.Get(disgoGitInfo.ZipballUrl)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = rs.Body.Close()
+	}()
+
+	if rs.StatusCode != http.StatusOK {
+		return errors.New("no status code 200")
+	}
+
+	out, err := os.Create("disgo.zip")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = out.Close()
+	}()
+
+	_, err = io.Copy(out, rs.Body)
+	if err != nil {
+		return err
+	}
+
+	return unzip("./disgo.zip")
+}
+
+// https://stackoverflow.com/a/65618964
+func unzip(source string) error {
+	reader, err := zip.OpenReader(source)
+	if err != nil {
+		return err
+	}
+	dirName := reader.File[0].Name
+	for _, file := range reader.File {
+		if file.Mode().IsDir() {
+			continue
+		}
+		fileName := strings.Replace(file.Name, dirName, "disgo", 1)
+		err = os.MkdirAll(path.Dir(fileName), os.ModeDir)
+		if err != nil {
+			return err
+		}
+		open, err := file.Open()
+		if err != nil {
+			return err
+		}
+		create, err := os.Create(fileName)
+		if err != nil {
+			return err
+		}
+		_, err = create.ReadFrom(open)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
