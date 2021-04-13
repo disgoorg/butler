@@ -160,7 +160,7 @@ func downloadDisgo(restClient api.RestClient) error {
 	gitInfo, err := getGitInfo(restClient)
 	disgoGitInfo = gitInfo
 
-	rs, err := http.Get(disgoGitInfo.ZipballUrl)
+	rs, err := http.Get(disgoGitInfo.ZipballURL)
 	if err != nil {
 		return err
 	}

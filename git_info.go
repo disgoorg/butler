@@ -11,13 +11,13 @@ var getGitInfoRoute = endpoints.NewCustomRoute(endpoints.GET, disgoURL)
 
 
 type GitInfo struct {
-	Url             string    `json:"url"`
-	AssetsUrl       string    `json:"assets_url"`
-	UploadUrl       string    `json:"upload_url"`
-	HtmlUrl         string    `json:"html_url"`
-	Id              int       `json:"id"`
+	URL             string    `json:"url"`
+	AssetsURL       string    `json:"assets_url"`
+	UploadURL       string    `json:"upload_url"`
+	HtmlURL         string    `json:"html_url"`
+	ID              int       `json:"id"`
 	Author          Author    `json:"author"`
-	NodeId          string    `json:"node_id"`
+	NodeID          string    `json:"node_id"`
 	TagName         string    `json:"tag_name"`
 	TargetCommitish string    `json:"target_commitish"`
 	Name            string    `json:"name"`
@@ -25,28 +25,28 @@ type GitInfo struct {
 	Prerelease      bool      `json:"prerelease"`
 	CreatedAt       time.Time `json:"created_at"`
 	PublishedAt     time.Time `json:"published_at"`
-	TarballUrl      string    `json:"tarball_url"`
-	ZipballUrl      string    `json:"zipball_url"`
+	TarballURL      string    `json:"tarball_url"`
+	ZipballURL      string    `json:"zipball_url"`
 	Body            string    `json:"body"`
 }
 
 type Author struct {
 	Login             string `json:"login"`
-	Id                int    `json:"id"`
-	NodeId            string `json:"node_id"`
-	AvatarUrl         string `json:"avatar_url"`
-	GravatarId        string `json:"gravatar_id"`
-	Url               string `json:"url"`
-	HtmlUrl           string `json:"html_url"`
-	FollowersUrl      string `json:"followers_url"`
-	FollowingUrl      string `json:"following_url"`
-	GistsUrl          string `json:"gists_url"`
-	StarredUrl        string `json:"starred_url"`
-	SubscriptionsUrl  string `json:"subscriptions_url"`
-	OrganizationsUrl  string `json:"organizations_url"`
-	ReposUrl          string `json:"repos_url"`
-	EventsUrl         string `json:"events_url"`
-	ReceivedEventsUrl string `json:"received_events_url"`
+	ID                int    `json:"id"`
+	NodeID            string `json:"node_id"`
+	AvatarURL         string `json:"avatar_url"`
+	GravatarID        string `json:"gravatar_id"`
+	URL               string `json:"url"`
+	HtmlURL           string `json:"html_url"`
+	FollowersURL      string `json:"followers_url"`
+	FollowingURL      string `json:"following_url"`
+	GistsURL          string `json:"gists_url"`
+	StarredURL        string `json:"starred_url"`
+	SubscriptionsURL  string `json:"subscriptions_url"`
+	OrganizationsURL  string `json:"organizations_url"`
+	ReposURL          string `json:"repos_url"`
+	EventsURL         string `json:"events_url"`
+	ReceivedEventsURL string `json:"received_events_url"`
 	Type              string `json:"type"`
 	SiteAdmin         bool   `json:"site_admin"`
 }

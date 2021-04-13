@@ -24,7 +24,7 @@ var commands = []api.Command{
 	},
 	{
 		Name:              "reload-docs",
-		Description:       "reloads disog source",
+		Description:       "reloads disgo source",
 		DefaultPermission: false,
 	},
 }

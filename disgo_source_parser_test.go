@@ -8,7 +8,7 @@ import (
 )
 
 func Test_searchSource(t *testing.T) {
-	err := loadPackages("../disgo")
+	err := loadPackages()
 	assert.NoError(t, err)
 
 	result := findInPackages("disgo", "New")
