@@ -1,0 +1,9 @@
+{
+    "token": "",
+    "github_webhook_secret": "",
+    "interactions": {
+        "url": "",
+        "port": "",
+        "public_key": ""
+    }
+}

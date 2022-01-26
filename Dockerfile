@@ -1,4 +1,4 @@
-FROM golang:1.16.2-alpine AS build
+FROM golang:1.17.6-alpine AS build
 
 WORKDIR /tmp/app
 
@@ -7,7 +7,7 @@ COPY . .
 RUN apk add --no-cache git && \
     go mod download && \
     go mod verify && \
-    go build -o disgo-butler
+    go build -o butler
 
 FROM alpine:latest
 
