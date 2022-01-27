@@ -2,20 +2,25 @@ package main
 
 import (
 	"github.com/DisgoOrg/disgo-butler/butler"
+	"github.com/DisgoOrg/disgo-butler/butler/commands"
+	"github.com/DisgoOrg/disgo-butler/butler/components"
+	"github.com/DisgoOrg/disgo-butler/butler/handlers"
 	"github.com/DisgoOrg/log"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetLevel(log.LevelInfo)
-	log.Info()
-
 	cfg, err := butler.LoadConfig()
 	if err != nil {
-		log.Fatal(err)
+		panic("failed to load config: " + err.Error())
 	}
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetLevel(cfg.LogLevel)
+	log.Info("starting Disgo-Butler...")
 
-	bot := butler.New(*cfg)
-
-	bot.StartAndBlock()
+	b := butler.New(*cfg)
+	b.SetupHTTPHandlers(handlers.Handlers)
+	b.SetupBot()
+	b.SetupCommands(commands.Commands)
+	b.SetupComponents(components.Components)
+	b.StartAndBlock()
 }
