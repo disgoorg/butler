@@ -35,8 +35,8 @@ var Commands = []butler.Command{
 					Autocomplete: true,
 				},
 				discord.ApplicationCommandOptionString{
-					Name:         "type",
-					Description:  "The type to lookup. Example: MessageCreate",
+					Name:         "query",
+					Description:  "The lookup query. Example: MessageCreate",
 					Autocomplete: true,
 				},
 			},
