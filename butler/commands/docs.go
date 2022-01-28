@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/DisgoOrg/disgo-butler/butler"
 	"github.com/DisgoOrg/disgo-butler/common"
@@ -23,19 +22,14 @@ const (
 	embedColor             = 0x5865f2
 	embedPackageURLFormat  = "https://pkg.go.dev/%s"
 	embedURLFormat         = embedPackageURLFormat + "#%s"
+	typeFuncFormat         = "%s.%s"
 )
-
-func newCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 3*time.Second)
-}
 
 func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) {
 	println("handleDocs")
 	data := e.SlashCommandInteractionData()
-	ctx, cancel := newCtx()
-	defer cancel()
 
-	pkg, err := b.DocClient.Search(ctx, *data.Options.String("module"))
+	pkg, err := b.DocClient.Search(context.Background(), *data.Options.String("module"))
 	if err != nil {
 		common.RespondError(e, err)
 		return
@@ -141,6 +135,9 @@ func formatDescription(signature string, comment doc.Comment) (string, bool) {
 	}
 
 	markdown := comment.Markdown()
+	if markdown == "" {
+		markdown = "No comments found."
+	}
 	lines = strings.Split(markdown, "\n")
 	if len(lines) > 6 {
 		more = true
@@ -153,36 +150,112 @@ func formatDescription(signature string, comment doc.Comment) (string, bool) {
 	return fmt.Sprintf(embedDescriptionFormat, signature, markdown), more
 }
 
-func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) {
-	opts := make([]discord.AutocompleteChoice, 25)
-	if option := e.Data.Options.StringOption("module"); option != nil && option.Focused() {
-		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
-			packages := make([]string, len(cache))
-			i := 0
-			for name := range cache {
-				packages[i] = name
-				i++
-			}
-			ranks := fuzzy.RankFind(option.Value, packages)
-			sort.Sort(ranks)
+type UniqueChoices struct {
+	set     map[string]struct{}
+	choices []discord.AutocompleteChoice
+}
 
-			opts = append(opts, discord.AutocompleteChoiceString{
-				Name:  option.Value,
-				Value: option.Value,
-			})
-			for _, rank := range ranks {
-				if len(opts) >= 25 {
-					break
+func (c *UniqueChoices) Len() int {
+	return len(c.choices)
+}
+
+func (c *UniqueChoices) AddString(name string, value string) {
+	if _, ok := c.set[value]; !ok {
+		c.set[value] = struct{}{}
+		c.choices = append(c.choices, discord.AutocompleteChoiceString{Name: name, Value: value})
+	}
+}
+
+func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) {
+	choices := &UniqueChoices{set: map[string]struct{}{}}
+	if option := e.Data.Options.StringOption("module"); option != nil && option.Focused() {
+		if option.Value == "" {
+			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
+				if len(cache) == 0 {
+					choices.AddString("No modules found", "nothing")
+					return
 				}
-				opts = append(opts, discord.AutocompleteChoiceString{
-					Name:  rank.Target,
-					Value: rank.Target,
-				})
+				for _, pkg := range cache {
+					if choices.Len() > 24 {
+						return
+					}
+					choices.AddString(pkg.URL, pkg.URL)
+				}
+			})
+		} else {
+			choices.AddString(option.Value, option.Value)
+			_, _ = b.DocClient.Search(context.TODO(), option.Value)
+			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
+				var packages []string
+				for name, pkg := range cache {
+					packages = append(packages, name)
+					for _, subName := range pkg.Subpackages {
+						packages = append(packages, subName)
+					}
+				}
+				ranks := fuzzy.RankFindFold(option.Value, packages)
+				sort.Sort(ranks)
+
+				if len(ranks) > 24 {
+					ranks = ranks[:24]
+				}
+
+				for _, rank := range ranks {
+					if choices.Len() > 24 {
+						break
+					}
+					choices.AddString(rank.Target, rank.Target)
+				}
+			})
+		}
+	} else if option := e.Data.Options.StringOption("query"); option != nil && option.Focused() {
+		pkg, err := b.DocClient.Search(context.Background(), e.Data.Options.StringOption("module").Value)
+		if err != nil {
+			choices.AddString("module not found", "nothing")
+		} else {
+			if option.Value == "" {
+				for _, t := range pkg.Types {
+					if choices.Len() > 24 {
+						break
+					}
+					choices.AddString(t.Name, t.Name)
+				}
+				for _, f := range pkg.Functions {
+					if choices.Len() > 24 {
+						break
+					}
+					choices.AddString(f.Name, f.Name)
+				}
+			} else {
+				var types []string
+				for _, t := range pkg.Types {
+					types = append(types, t.Name)
+					for _, m := range t.Methods {
+						types = append(types, fmt.Sprintf("%s.%s", t.Name, m.Name))
+					}
+				}
+				for _, f := range pkg.Functions {
+					types = append(types, f.Name)
+				}
+				ranks := fuzzy.RankFindFold(option.Value, types)
+				sort.Sort(ranks)
+
+				for _, rank := range ranks {
+					if choices.Len() > 24 {
+						break
+					}
+					choices.AddString(rank.Target, rank.Target)
+				}
 			}
-		})
-	} else if option = e.Data.Options.StringOption("type"); option != nil && option.Focused() {
-		//ctx, cancel := newCtx()
-		//pkg, err := b.DocClient.Search(ctx, "")
-		//cancel()
+		}
+	} else {
+		choices.AddString("No results found", "nothing")
+	}
+	if err := e.Result(choices.choices); err != nil {
+		if rErr, ok := err.(*rest.Error); ok {
+			log.Errorf("Error sending message: %s", rErr.RsBody)
+			return
+		}
+		log.Error("Error sending autocomplete result: ", err)
 	}
 }

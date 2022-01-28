@@ -3,7 +3,7 @@ module github.com/DisgoOrg/disgo-butler
 go 1.17
 
 require (
-	github.com/DisgoOrg/disgo v0.7.1-0.20220126193650-8ad57a1d8939
+	github.com/DisgoOrg/disgo v0.7.1-0.20220128072612-8cf0bebd24fe
 	github.com/DisgoOrg/log v1.1.2
 	github.com/DisgoOrg/snowflake v1.0.3
 	github.com/google/go-github v17.0.0+incompatible
