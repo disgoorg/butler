@@ -7,23 +7,27 @@ import (
 
 var Commands = []butler.Command{
 	{
-		Definition: discord.SlashCommandCreate{
+		Create: discord.SlashCommandCreate{
 			Name:              "ping",
 			Description:       "Responds with pong",
 			DefaultPermission: true,
 		},
-		Handler: handlePing,
+		CommandHandlers: map[string]butler.HandleFunc{
+			"": handlePing,
+		},
 	},
 	{
-		Definition: discord.SlashCommandCreate{
+		Create: discord.SlashCommandCreate{
 			Name:              "info",
 			Description:       "Provides information about disgo",
 			DefaultPermission: true,
 		},
-		Handler: handleInfo,
+		CommandHandlers: map[string]butler.HandleFunc{
+			"": handleInfo,
+		},
 	},
 	{
-		Definition: discord.SlashCommandCreate{
+		Create: discord.SlashCommandCreate{
 			Name:              "docs",
 			Description:       "Provides info to the provided module, type, function, etc.",
 			DefaultPermission: true,
@@ -41,7 +45,86 @@ var Commands = []butler.Command{
 				},
 			},
 		},
-		Handler:             handleDocs,
-		AutocompleteHandler: handleDocsAutocomplete,
+		CommandHandlers: map[string]butler.HandleFunc{
+			"": handleDocs,
+		},
+		AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
+			"": handleDocsAutocomplete,
+		},
+	},
+	{
+		Create: discord.SlashCommandCreate{
+			Name:        "tag",
+			Description: "let's you display a tag",
+			Options: []discord.ApplicationCommandOption{
+
+				discord.ApplicationCommandOptionString{
+					Name:        "name",
+					Description: "the name of the tag to display",
+					Required:    true,
+				},
+			},
+			DefaultPermission: true,
+		},
+		CommandHandlers: map[string]butler.HandleFunc{
+			"": tagHandler,
+		},
+	},
+	{
+		Create: discord.SlashCommandCreate{
+			Name:        "tags",
+			Description: "let's you create/delete/edit tags",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "create",
+					Description: "let's you create a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "the name of the tag to create",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "content",
+							Description: "the content of the new tag",
+							Required:    true,
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "delete",
+					Description: "let's you delete a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "the name of the tag to delete",
+							Required:    true,
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "edit",
+					Description: "let's you edit a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "the name of the tag to edit",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionString{
+							Name:        "content",
+							Description: "the new content of the new tag",
+							Required:    true,
+						},
+					},
+				},
+			},
+			DefaultPermission: true,
+		},
+		CommandHandlers: map[string]butler.HandleFunc{
+			"create": createTagHandler,
+			"delete": deleteTagHandler,
+			"edit":   editTagHandler,
+		},
 	},
 }

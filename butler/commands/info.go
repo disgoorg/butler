@@ -6,14 +6,12 @@ import (
 	"github.com/DisgoOrg/disgo/discord"
 )
 
-func handleInfo(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) {
-	if err := e.Create(discord.NewMessageCreateBuilder().
+func handleInfo(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+	return e.Create(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			AddField("Version", "", false).
 			Build(),
 		).
 		Build(),
-	); err != nil {
-		b.Bot.Logger.Error(err)
-	}
+	)
 }

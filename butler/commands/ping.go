@@ -6,6 +6,6 @@ import (
 	"github.com/DisgoOrg/disgo/discord"
 )
 
-func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionEvent) {
-	_ = e.Create(discord.MessageCreate{Content: "Pong"})
+func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+	return e.Create(discord.MessageCreate{Content: "Pong"})
 }

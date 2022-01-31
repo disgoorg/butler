@@ -1,11 +1,28 @@
 package butler
 
 import (
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/DisgoOrg/disgo/core/events"
+	"github.com/DisgoOrg/log"
 )
+
+func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
+	data := strings.Split(e.Data.ID().String(), ":")
+	action := data[0]
+	if len(data) > 1 {
+		data = append(data[:0], data[1:]...)
+	}
+	if handler := b.Components.Get(action); handler != nil {
+		if err := handler(b, data, e); err != nil {
+			b.Bot.Logger.Error("Error handling component: ", err)
+		}
+		return
+	}
+	log.Warnf("No handler for component with CustomID %s found", e.Data.ID())
+}
 
 func NewComponents() *Components {
 	components := &Components{
@@ -20,8 +37,10 @@ type Components struct {
 	components map[string]Component
 }
 
+type ComponentHandlerFunc func(b *Butler, data []string, e *events.ComponentInteractionEvent) error
+
 type Component struct {
-	Handler func(b *Butler, data []string, e *events.ComponentInteractionEvent)
+	Handler ComponentHandlerFunc
 	Timeout time.Time
 }
 
@@ -43,7 +62,7 @@ func (c *Components) startCleanup() {
 	}()
 }
 
-func (c *Components) Get(name string) func(b *Butler, data []string, e *events.ComponentInteractionEvent) {
+func (c *Components) Get(name string) ComponentHandlerFunc {
 	c.RLock()
 	defer c.RUnlock()
 	component, ok := c.components[name]
@@ -53,7 +72,7 @@ func (c *Components) Get(name string) func(b *Butler, data []string, e *events.C
 	return component.Handler
 }
 
-func (c *Components) Add(action string, handler func(b *Butler, data []string, e *events.ComponentInteractionEvent), timeout time.Duration) {
+func (c *Components) Add(action string, handler ComponentHandlerFunc, timeout time.Duration) {
 	c.Lock()
 	defer c.Unlock()
 

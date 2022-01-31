@@ -10,8 +10,6 @@ import (
 	"github.com/DisgoOrg/disgo-butler/common"
 	"github.com/DisgoOrg/disgo/core/events"
 	"github.com/DisgoOrg/disgo/discord"
-	"github.com/DisgoOrg/disgo/rest"
-	"github.com/DisgoOrg/log"
 	"github.com/hhhapz/doc"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
@@ -25,14 +23,13 @@ const (
 	typeFuncFormat         = "%s.%s"
 )
 
-func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) {
+func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	println("handleDocs")
 	data := e.SlashCommandInteractionData()
 
 	pkg, err := b.DocClient.Search(context.Background(), *data.Options.String("module"))
 	if err != nil {
-		common.RespondError(e, err)
-		return
+		return common.RespondError(e, err)
 	}
 	query := data.Options.StringOption("query")
 	var (
@@ -72,13 +69,7 @@ func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) 
 	messageBuilder := discord.NewMessageCreateBuilder().
 		SetEmbeds(embed).AddActionRow(discord.NewSelectMenu(discord.CustomID("docs_action:"+pkg.URL), "action", options...))
 
-	if err = e.Create(messageBuilder.Build()); err != nil {
-		if rErr, ok := err.(*rest.Error); ok {
-			log.Errorf("Error sending message: %s", rErr.RsBody)
-			return
-		}
-		log.Errorf("Error creating message: %s", err)
-	}
+	return e.Create(messageBuilder.Build())
 }
 
 func embedFromPackage(pkg doc.Package) (discord.Embed, bool) {
@@ -166,7 +157,7 @@ func (c *UniqueChoices) AddString(name string, value string) {
 	}
 }
 
-func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) {
+func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
 	choices := &UniqueChoices{set: map[string]struct{}{}}
 	if option := e.Data.Options.StringOption("module"); option != nil && option.Focused() {
 		if option.Value == "" {
@@ -251,11 +242,5 @@ func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionE
 	} else {
 		choices.AddString("No results found", "nothing")
 	}
-	if err := e.Result(choices.choices); err != nil {
-		if rErr, ok := err.(*rest.Error); ok {
-			log.Errorf("Error sending message: %s", rErr.RsBody)
-			return
-		}
-		log.Error("Error sending autocomplete result: ", err)
-	}
+	return e.Result(choices.choices)
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/DisgoOrg/disgo/core"
@@ -19,6 +18,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
+	"github.com/uptrace/bun"
 )
 
 func New(config Config) *Butler {
@@ -36,6 +36,7 @@ type Butler struct {
 	Commands     map[snowflake.Snowflake]Command
 	Components   *Components
 	DocClient    *doc.CachedSearcher
+	DB           *bun.DB
 	Config       Config
 }
 
@@ -51,7 +52,7 @@ func (b *Butler) SetupHTTPHandlers(handlers map[string]HTTPHandleFunc) {
 func (b *Butler) SetupCommands(commands []Command) {
 	commandCreates := make([]discord.ApplicationCommandCreate, len(commands))
 	for i := range commands {
-		commandCreates[i] = commands[i].Definition
+		commandCreates[i] = commands[i].Create
 	}
 	var (
 		cmds []core.ApplicationCommand
@@ -152,33 +153,4 @@ func (b *Butler) OnReady() {
 	}); err != nil {
 		log.Errorf("Failed to set presence: %s", err)
 	}
-}
-
-func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInteractionEvent) {
-	if command, ok := b.Commands[e.Data.ID()]; ok {
-		command.Handler(b, e)
-		return
-	}
-	log.Warnf("No handler for command with ID %s found", e.Data.ID())
-}
-
-func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEvent) {
-	if command, ok := b.Commands[e.Data.CommandID]; ok {
-		command.AutocompleteHandler(b, e)
-		return
-	}
-	log.Warnf("No handler for autocomplete with ID %s found", e.Data.CommandID)
-}
-
-func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
-	data := strings.Split(e.Data.ID().String(), ":")
-	action := data[0]
-	if len(data) > 1 {
-		data = append(data[:0], data[1:]...)
-	}
-	if handler := b.Components.Get(action); handler != nil {
-		handler(b, data, e)
-		return
-	}
-	log.Warnf("No handler for component with CustomID %s found", e.Data.ID())
 }

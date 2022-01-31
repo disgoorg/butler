@@ -35,33 +35,58 @@ func LoadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
+func SaveConfig(config Config) error {
+	file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = file.Sync()
+		_ = file.Close()
+	}()
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(data)
+	return err
+}
+
 type Config struct {
 	DevMode    bool                `json:"dev_mode"`
 	DevGuildID snowflake.Snowflake `json:"dev_guild_id"`
 	LogLevel   log.Level           `json:"log_level"`
 	Token      string              `json:"token"`
 
-	DocsConfig DocsConfig `json:"docs_config"`
-
-	GithubWebhookSecret  string                         `json:"github_webhook_secret"`
-	GithubReleasesConfig map[string]GithubReleaseConfig `json:"releasers"`
-
-	InteractionsConfig InteractionsConfig `json:"interactions"`
+	DocsConfig         DocsConfig                     `json:"docs"`
+	Database           DatabaseConfig                 `json:"database"`
+	GithubReleases     map[string]GithubReleaseConfig `json:"github_releases"`
+	InteractionsConfig InteractionsConfig             `json:"interactions"`
 }
 
 type DocsConfig struct {
 	Aliases map[string]string `json:"aliases"`
 }
 
-type InteractionsConfig struct {
-	URL       string `json:"url"`
-	Port      string `json:"port"`
-	PublicKey string `json:"public_key"`
+type DatabaseConfig struct {
+	Address  string `json:"address"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	Insecure bool   `json:"insecure"`
+	Verbose  bool   `json:"verbose"`
 }
 
 type GithubReleaseConfig struct {
 	WebhookID     snowflake.Snowflake `json:"webhook_id"`
 	WebhookToken  string              `json:"webhook_token"`
+	WebhookSecret string              `json:"webhook_secret"`
 	PingRole      snowflake.Snowflake `json:"ping_role"`
 	WebhookClient *webhook.Client     `json:"-"`
+}
+
+type InteractionsConfig struct {
+	URL       string `json:"url"`
+	Port      string `json:"port"`
+	PublicKey string `json:"public_key"`
 }
