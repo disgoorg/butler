@@ -1,8 +1,10 @@
 package common
 
 import (
-	"github.com/DisgoOrg/disgo/core/events"
-	"github.com/DisgoOrg/disgo/discord"
+	"fmt"
+
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 )
 
 const (
@@ -11,20 +13,25 @@ const (
 )
 
 func RespondErr(e *events.ApplicationCommandInteractionEvent, err error) error {
-	return e.Create(discord.NewMessageCreateBuilder().
+	return RespondErrMessage(e, fmt.Sprintf("Error while executing: %s", err))
+}
+
+func RespondErrMessage(e *events.ApplicationCommandInteractionEvent, message string) error {
+	return e.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
-			SetDescriptionf("Error while executing: %s", err).
+			SetDescription(message).
 			SetColor(ColorError).
 			Build(),
 		).
+		SetEphemeral(true).
 		Build(),
 	)
 }
 
 func Respond(e *events.ApplicationCommandInteractionEvent, message string) error {
-	return e.Create(discord.NewMessageCreateBuilder().
+	return e.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
-			SetDescriptionf(message).
+			SetDescription(message).
 			SetColor(ColorSuccess).
 			Build(),
 		).

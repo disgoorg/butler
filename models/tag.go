@@ -3,13 +3,12 @@ package models
 import (
 	"time"
 
-	"github.com/DisgoOrg/snowflake"
+	"github.com/disgoorg/snowflake"
 )
 
 type Tag struct {
-	ID        int                 `bun:"id,type:bigserial,pk,notnull"`
-	GuildID   snowflake.Snowflake `bun:"guild_id,notnull,unique:name-guild"`
-	Name      string              `bun:"name,notnull,unique:name-guild"`
+	GuildID   snowflake.Snowflake `bun:"guild_id,pk"`
+	Name      string              `bun:"name,pk"`
 	Content   string              `bun:"content,notnull"`
 	Owner     snowflake.Snowflake `bun:"owner,notnull"`
 	Uses      int                 `bun:"uses,notnull"`

@@ -5,23 +5,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DisgoOrg/disgo/core/events"
-	"github.com/DisgoOrg/log"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/log"
 )
 
 func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
-	data := strings.Split(e.Data.ID().String(), ":")
+	data := strings.Split(e.Data.CustomID().String(), ":")
 	action := data[0]
 	if len(data) > 1 {
 		data = append(data[:0], data[1:]...)
 	}
 	if handler := b.Components.Get(action); handler != nil {
 		if err := handler(b, data, e); err != nil {
-			b.Bot.Logger.Error("Error handling component: ", err)
+			b.Client.Logger().Error("Error handling component: ", err)
 		}
 		return
 	}
-	log.Warnf("No handler for component with CustomID %s found", e.Data.ID())
+	log.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
 }
 
 func NewComponents() *Components {

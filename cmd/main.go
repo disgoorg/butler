@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/DisgoOrg/disgo-butler/butler"
-	"github.com/DisgoOrg/disgo-butler/butler/commands"
-	"github.com/DisgoOrg/disgo-butler/butler/components"
-	"github.com/DisgoOrg/disgo-butler/butler/handlers"
-	"github.com/DisgoOrg/log"
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo-butler/butler/commands"
+	"github.com/disgoorg/disgo-butler/butler/components"
+	"github.com/disgoorg/disgo-butler/butler/handlers"
+	"github.com/disgoorg/log"
 )
 
 func main() {

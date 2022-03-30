@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DisgoOrg/disgo-butler/butler"
-	"github.com/DisgoOrg/disgo/discord"
-	"github.com/DisgoOrg/disgo/webhook"
-	"github.com/DisgoOrg/log"
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/webhook"
+	"github.com/disgoorg/log"
 	"github.com/google/go-github/github"
 )
 
@@ -58,16 +58,18 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 		return nil
 	}
 
-	cfg, ok := b.Config.GithubReleasesConfig[e.GetRepo().GetName()]
+	org, repo := e.GetRepo().GetOwner().GetLogin(), e.GetRepo().GetName()
+
+	cfg, ok := b.Config.GithubReleases[repo]
 	if !ok {
 		return errors.New("no config found for this repo")
 	}
 
-	if cfg.WebhookClient == nil {
-		cfg.WebhookClient = webhook.NewClient(cfg.WebhookID, cfg.WebhookToken)
+	webhookClient, ok := b.Webhooks[repo]
+	if !ok {
+		webhookClient = webhook.NewClient(cfg.WebhookID, cfg.WebhookToken)
+		b.Webhooks[repo] = webhookClient
 	}
-
-	org, repo := e.GetRepo().GetOwner().GetLogin(), e.GetRepo().GetName()
 
 	releases, _, err := b.GitHubClient.Repositories.ListReleases(context.TODO(), org, repo, &github.ListOptions{PerPage: 2})
 	if err != nil {
@@ -97,23 +99,21 @@ out:
 		}
 	}
 
-	_, err = cfg.WebhookClient.CreateMessage(discord.NewWebhookMessageCreateBuilder().
-		SetContentf("<@&%s>", cfg.PingRole).
-		SetEmbeds(
-			discord.NewEmbedBuilder().
-				SetAuthor(
-					fmt.Sprintf("%s version %s has been released", e.GetRepo().GetName(), e.Release.GetTagName()),
-					e.GetRelease().GetHTMLURL(),
-					e.GetRepo().GetOwner().GetAvatarURL(),
-				).
-				SetDescription(message).
-				SetColor(0x5865f2).
-				SetFooter("Release by "+e.GetRelease().GetAuthor().GetLogin(), e.GetRelease().GetAuthor().GetAvatarURL()).
-				SetTimestamp(e.GetRelease().GetCreatedAt().Time).
-				Build(),
+	_, err = webhookClient.CreateMessage(discord.NewWebhookMessageCreateBuilder().
+		SetContent(discord.RoleMention(cfg.PingRole)).
+		SetEmbeds(discord.NewEmbedBuilder().
+			SetAuthor(
+				fmt.Sprintf("%s version %s has been released", repo, e.Release.GetTagName()),
+				e.GetRelease().GetHTMLURL(),
+				e.GetRepo().GetOwner().GetAvatarURL(),
+			).
+			SetDescription(message).
+			SetColor(0x5865f2).
+			SetFooter("Release by "+e.GetRelease().GetAuthor().GetLogin(), e.GetRelease().GetAuthor().GetAvatarURL()).
+			SetTimestamp(e.GetRelease().GetCreatedAt().Time).
+			Build(),
 		).
 		Build(),
 	)
-
 	return err
 }

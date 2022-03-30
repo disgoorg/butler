@@ -7,14 +7,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/DisgoOrg/disgo/core"
-	"github.com/DisgoOrg/disgo/core/bot"
-	"github.com/DisgoOrg/disgo/core/events"
-	"github.com/DisgoOrg/disgo/discord"
-	"github.com/DisgoOrg/disgo/gateway"
-	"github.com/DisgoOrg/disgo/httpserver"
-	"github.com/DisgoOrg/log"
-	"github.com/DisgoOrg/snowflake"
+	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/httpserver"
+	"github.com/disgoorg/disgo/webhook"
+	"github.com/disgoorg/log"
+	"github.com/disgoorg/snowflake"
 	"github.com/google/go-github/github"
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
@@ -30,7 +32,7 @@ func New(config Config) *Butler {
 }
 
 type Butler struct {
-	Bot          *core.Bot
+	Client       bot.Client
 	Mux          *http.ServeMux
 	GitHubClient *github.Client
 	Commands     map[snowflake.Snowflake]Command
@@ -38,6 +40,7 @@ type Butler struct {
 	DocClient    *doc.CachedSearcher
 	DB           *bun.DB
 	Config       Config
+	Webhooks     map[string]webhook.Client
 }
 
 func (b *Butler) SetupHTTPHandlers(handlers map[string]HTTPHandleFunc) {
@@ -55,23 +58,23 @@ func (b *Butler) SetupCommands(commands []Command) {
 		commandCreates[i] = commands[i].Create
 	}
 	var (
-		cmds []core.ApplicationCommand
+		cmds []discord.ApplicationCommand
 		err  error
 	)
 	if b.Config.DevMode {
-		cmds, err = b.Bot.SetGuildCommands(b.Config.DevGuildID, commandCreates)
+		cmds, err = b.Client.Rest().Applications().SetGuildCommands(b.Client.ApplicationID(), b.Config.DevGuildID, commandCreates)
 	} else {
-		cmds, err = b.Bot.SetCommands(commandCreates)
+		cmds, err = b.Client.Rest().Applications().SetGlobalCommands(b.Client.ApplicationID(), commandCreates)
 	}
 	if err != nil {
-		b.Bot.Logger.Error("Failed to set commands: ", err)
+		b.Client.Logger().Error("Failed to set commands: ", err)
 	}
 	for i, cmd := range cmds {
 		b.Commands[cmd.ID()] = commands[i]
 	}
 }
 
-func (b *Butler) SetupComponents(components map[string]func(b *Butler, data []string, e *events.ComponentInteractionEvent)) {
+func (b *Butler) SetupComponents(components map[string]func(b *Butler, data []string, e *events.ComponentInteractionEvent) error) {
 	for action, handler := range components {
 		b.Components.Add(action, handler, 0)
 	}
@@ -79,11 +82,11 @@ func (b *Butler) SetupComponents(components map[string]func(b *Butler, data []st
 
 func (b *Butler) SetupBot() {
 	var err error
-	if b.Bot, err = bot.New(b.Config.Token,
-		bot.WithGatewayOpts(
+	if b.Client, err = disgo.New(b.Config.Token,
+		bot.WithGatewayConfigOpts(
 			gateway.WithGatewayIntents(discord.GatewayIntentsAll),
 			gateway.WithCompress(true),
-			gateway.WithPresence(discord.UpdatePresenceCommandData{
+			gateway.WithPresence(discord.GatewayMessageDataPresenceUpdate{
 				Activities: []discord.Activity{
 					{
 						Name: "loading...",
@@ -93,38 +96,38 @@ func (b *Butler) SetupBot() {
 				Status: discord.OnlineStatusDND,
 			}),
 		),
-		bot.WithCacheOpts(core.WithCacheFlags(core.CacheFlagGuilds)),
+		bot.WithCacheConfigOpts(cache.WithCacheFlags(cache.FlagGuilds)),
 		bot.WithEventListeners(b),
-		bot.WithHTTPServerOpts(
+		bot.WithHTTPServerConfigOpts(
 			httpserver.WithServeMux(b.Mux),
-			httpserver.WithPort(b.Config.InteractionsConfig.Port),
+			httpserver.WithAddress(b.Config.InteractionsConfig.Address),
 			httpserver.WithURL(b.Config.InteractionsConfig.URL),
 			httpserver.WithPublicKey(b.Config.InteractionsConfig.PublicKey),
 		),
 	); err != nil {
 		log.Errorf("Failed to start bot: %s", err)
 	}
-	b.GitHubClient = github.NewClient(b.Bot.RestServices.HTTPClient())
-	b.DocClient = doc.WithCache(doc.New(b.Bot.RestServices.HTTPClient(), godocs.Parser))
+	b.GitHubClient = github.NewClient(b.Client.Rest().RestClient().HTTPClient())
+	b.DocClient = doc.WithCache(doc.New(b.Client.Rest().RestClient().HTTPClient(), godocs.Parser))
 }
 
 func (b *Butler) StartAndBlock() {
-	if err := b.Bot.ConnectGateway(context.TODO()); err != nil {
+	if err := b.Client.ConnectGateway(context.TODO()); err != nil {
 		log.Errorf("Failed to connect to gateway: %s", err)
 	}
 
-	if err := b.Bot.StartHTTPServer(); err != nil {
+	if err := b.Client.StartHTTPServer(); err != nil {
 		log.Errorf("Failed to start http server: %s", err)
 	}
 
-	log.Info("Bot is running. Press CTRL-C to exit.")
+	log.Info("Client is running. Press CTRL-C to exit.")
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-s
 	log.Info("Shutting down...")
 }
 
-func (b *Butler) OnEvent(event core.Event) {
+func (b *Butler) OnEvent(event bot.Event) {
 	switch e := event.(type) {
 	case *events.ReadyEvent:
 		b.OnReady()
@@ -142,7 +145,7 @@ func (b *Butler) OnEvent(event core.Event) {
 
 func (b *Butler) OnReady() {
 	log.Infof("Butler ready")
-	if err := b.Bot.SetPresence(context.TODO(), discord.UpdatePresenceCommandData{
+	if err := b.Client.SetPresence(context.TODO(), discord.GatewayMessageDataPresenceUpdate{
 		Activities: []discord.Activity{
 			{
 				Name: "to you",

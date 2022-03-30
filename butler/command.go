@@ -1,16 +1,15 @@
 package butler
 
 import (
-	"github.com/DisgoOrg/disgo/core"
-	"github.com/DisgoOrg/disgo/core/events"
-	"github.com/DisgoOrg/disgo/discord"
-	"github.com/DisgoOrg/log"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/log"
 )
 
 func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInteractionEvent) {
-	if command, ok := b.Commands[e.Data.ID()]; ok {
+	if command, ok := b.Commands[e.Data.CommandID()]; ok {
 		var path string
-		if data, ok := e.Data.(*core.SlashCommandInteractionData); ok {
+		if data, ok := e.Data.(discord.SlashCommandInteractionData); ok {
 			if name := data.SubCommandName; name != nil {
 				path += "/" + *name
 			}
@@ -20,12 +19,12 @@ func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInt
 		}
 		if handler, ok := command.CommandHandlers[path]; ok {
 			if err := handler(b, e); err != nil {
-				b.Bot.Logger.Error("Error handling command: ", err)
+				b.Client.Logger().Error("Error handling command: ", err)
 			}
 		}
 		return
 	}
-	log.Warnf("No handler for command with ID %s found", e.Data.ID())
+	log.Warnf("No handler for command with ID %s found", e.Data.CommandID())
 }
 
 func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEvent) {
@@ -40,7 +39,7 @@ func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEven
 
 		if handler, ok := command.AutocompleteHandlers[path]; ok {
 			if err := handler(b, e); err != nil {
-				b.Bot.Logger.Error("Error handling autocomplete: ", err)
+				b.Client.Logger().Error("Error handling autocomplete: ", err)
 			}
 		}
 		return

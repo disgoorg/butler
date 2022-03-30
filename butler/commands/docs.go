@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/DisgoOrg/disgo-butler/butler"
-	"github.com/DisgoOrg/disgo-butler/common"
-	"github.com/DisgoOrg/disgo/core/events"
-	"github.com/DisgoOrg/disgo/discord"
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/hhhapz/doc"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
@@ -27,20 +27,20 @@ func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) 
 	println("handleDocs")
 	data := e.SlashCommandInteractionData()
 
-	pkg, err := b.DocClient.Search(context.Background(), *data.Options.String("module"))
+	pkg, err := b.DocClient.Search(context.Background(), data.String("module"))
 	if err != nil {
-		return common.RespondError(e, err)
+		return common.RespondErr(e, err)
 	}
-	query := data.Options.StringOption("query")
+	query, ok := data.OptString("query")
 	var (
 		embed discord.Embed
 		more  bool
 	)
 
-	if query == nil {
+	if !ok {
 		embed, more = embedFromPackage(pkg)
 	} else {
-		values := strings.Split(query.Value, ".")
+		values := strings.Split(query, ".")
 		for i := range values {
 			values[i] = strings.ToLower(values[i])
 		}
@@ -66,10 +66,11 @@ func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) 
 		options = append(options, discord.NewSelectMenuOption("expand", "expand").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
 
-	messageBuilder := discord.NewMessageCreateBuilder().
-		SetEmbeds(embed).AddActionRow(discord.NewSelectMenu(discord.CustomID("docs_action:"+pkg.URL), "action", options...))
-
-	return e.Create(messageBuilder.Build())
+	return e.CreateMessage(discord.NewMessageCreateBuilder().
+		SetEmbeds(embed).
+		AddActionRow(discord.NewSelectMenu(discord.CustomID("docs_action:"+pkg.URL), "action", options...)).
+		Build(),
+	)
 }
 
 func embedFromPackage(pkg doc.Package) (discord.Embed, bool) {
@@ -159,7 +160,7 @@ func (c *UniqueChoices) AddString(name string, value string) {
 
 func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
 	choices := &UniqueChoices{set: map[string]struct{}{}}
-	if option := e.Data.Options.StringOption("module"); option != nil && option.Focused() {
+	if option, ok := e.Data.StringOption("module"); ok && option.Focused() {
 		if option.Value == "" {
 			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
 				if len(cache) == 0 {
@@ -199,8 +200,8 @@ func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionE
 				}
 			})
 		}
-	} else if option := e.Data.Options.StringOption("query"); option != nil && option.Focused() {
-		pkg, err := b.DocClient.Search(context.Background(), e.Data.Options.StringOption("module").Value)
+	} else if option, ok := e.Data.StringOption("query"); ok && option.Focused() {
+		pkg, err := b.DocClient.Search(context.Background(), e.Data.String("module"))
 		if err != nil {
 			choices.AddString("module not found", "nothing")
 		} else {

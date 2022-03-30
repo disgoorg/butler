@@ -1,14 +1,14 @@
 package commands
 
 import (
-	"github.com/DisgoOrg/disgo-butler/butler"
-	"github.com/DisgoOrg/disgo/discord"
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo/discord"
 )
 
 var Commands = []butler.Command{
 	{
 		Create: discord.SlashCommandCreate{
-			Name:              "ping",
+			CommandName:       "ping",
 			Description:       "Responds with pong",
 			DefaultPermission: true,
 		},
@@ -18,7 +18,7 @@ var Commands = []butler.Command{
 	},
 	{
 		Create: discord.SlashCommandCreate{
-			Name:              "info",
+			CommandName:       "info",
 			Description:       "Provides information about disgo",
 			DefaultPermission: true,
 		},
@@ -28,13 +28,13 @@ var Commands = []butler.Command{
 	},
 	{
 		Create: discord.SlashCommandCreate{
-			Name:              "docs",
+			CommandName:       "docs",
 			Description:       "Provides info to the provided module, type, function, etc.",
 			DefaultPermission: true,
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionString{
 					Name:         "module",
-					Description:  "The module to lookup. Example: github.com/DisgoOrg/disgo/core",
+					Description:  "The module to lookup. Example: github.com/disgoorg/disgo/core",
 					Required:     true,
 					Autocomplete: true,
 				},
@@ -54,7 +54,7 @@ var Commands = []butler.Command{
 	},
 	{
 		Create: discord.SlashCommandCreate{
-			Name:        "tag",
+			CommandName: "tag",
 			Description: "let's you display a tag",
 			Options: []discord.ApplicationCommandOption{
 
@@ -72,7 +72,7 @@ var Commands = []butler.Command{
 	},
 	{
 		Create: discord.SlashCommandCreate{
-			Name:        "tags",
+			CommandName: "tags",
 			Description: "let's you create/delete/edit tags",
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionSubCommand{
@@ -118,6 +118,22 @@ var Commands = []butler.Command{
 						},
 					},
 				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "info",
+					Description: "lets you view a tag's info",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:         "name",
+							Description:  "the name of the tag to view",
+							Required:     true,
+							Autocomplete: true,
+						},
+					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					Name:        "list",
+					Description: "lists all tags",
+				},
 			},
 			DefaultPermission: true,
 		},
@@ -125,6 +141,12 @@ var Commands = []butler.Command{
 			"create": createTagHandler,
 			"delete": deleteTagHandler,
 			"edit":   editTagHandler,
+			"info":   infoTagHandler,
+			"list":   listTagHandler,
+		},
+		AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
+			"list": autoCompleteTagHandler,
+			"info": autoCompleteTagHandler,
 		},
 	},
 }

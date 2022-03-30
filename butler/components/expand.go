@@ -1,8 +1,8 @@
 package components
 
 import (
-	"github.com/DisgoOrg/disgo-butler/butler"
-	"github.com/DisgoOrg/disgo/core/events"
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo/events"
 )
 
 func handleExpand(b *butler.Butler, data []string, e *events.ComponentInteractionEvent) {

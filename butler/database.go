@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/DisgoOrg/disgo-butler/models"
+	"github.com/disgoorg/disgo-butler/models"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
