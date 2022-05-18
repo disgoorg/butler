@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo-butler/db"
+	routes2 "github.com/disgoorg/disgo-butler/routes"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
@@ -16,68 +18,39 @@ import (
 	"github.com/disgoorg/disgo/httpserver"
 	"github.com/disgoorg/disgo/webhook"
 	"github.com/disgoorg/log"
-	"github.com/disgoorg/snowflake"
-	"github.com/google/go-github/github"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/go-github/v44/github"
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
-	"github.com/uptrace/bun"
 )
 
 func New(config Config) *Butler {
 	return &Butler{
 		Config:     config,
-		Commands:   map[snowflake.Snowflake]Command{},
-		Components: NewComponents(),
+		Commands:   map[string]Command{},
+		Components: map[string]Component{},
 	}
 }
 
 type Butler struct {
 	Client       bot.Client
-	Mux          *http.ServeMux
 	GitHubClient *github.Client
-	Commands     map[snowflake.Snowflake]Command
-	Components   *Components
+	Commands     map[string]Command
+	Components   map[string]Component
 	DocClient    *doc.CachedSearcher
-	DB           *bun.DB
+	DB           db.DB
 	Config       Config
 	Webhooks     map[string]webhook.Client
 }
 
-func (b *Butler) SetupHTTPHandlers(handlers map[string]HTTPHandleFunc) {
-	b.Mux = http.NewServeMux()
-	for pattern, handler := range handlers {
-		b.Mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			handler(b, w, r)
-		})
-	}
-}
+func (b *Butler) SetupRoutes() *http.ServeMux {
+	r := chi.NewRouter()
+	r.Post("/github", routes2.HandleGithub(b))
+	r.Get("/login", routes2.HandleLogin(b))
 
-func (b *Butler) SetupCommands(commands []Command) {
-	commandCreates := make([]discord.ApplicationCommandCreate, len(commands))
-	for i := range commands {
-		commandCreates[i] = commands[i].Create
-	}
-	var (
-		cmds []discord.ApplicationCommand
-		err  error
-	)
-	if b.Config.DevMode {
-		cmds, err = b.Client.Rest().Applications().SetGuildCommands(b.Client.ApplicationID(), b.Config.DevGuildID, commandCreates)
-	} else {
-		cmds, err = b.Client.Rest().Applications().SetGlobalCommands(b.Client.ApplicationID(), commandCreates)
-	}
-	if err != nil {
-		b.Client.Logger().Error("Failed to set commands: ", err)
-	}
-	for i, cmd := range cmds {
-		b.Commands[cmd.ID()] = commands[i]
-	}
-}
-
-func (b *Butler) SetupComponents(components map[string]func(b *Butler, data []string, e *events.ComponentInteractionEvent) error) {
-	for action, handler := range components {
-		b.Components.Add(action, handler, 0)
-	}
+	mux := http.NewServeMux()
+	mux.Handle("/", r)
+	return mux
 }
 
 func (b *Butler) SetupBot() {
@@ -97,9 +70,12 @@ func (b *Butler) SetupBot() {
 			}),
 		),
 		bot.WithCacheConfigOpts(cache.WithCacheFlags(cache.FlagGuilds)),
-		bot.WithEventListeners(b),
+		bot.WithEventListenerFunc(b.OnReady),
+		bot.WithEventListenerFunc(b.OnApplicationCommandInteraction),
+		bot.WithEventListenerFunc(b.OnComponentInteraction),
+		bot.WithEventListenerFunc(b.OnAutocompleteInteraction),
 		bot.WithHTTPServerConfigOpts(
-			httpserver.WithServeMux(b.Mux),
+			httpserver.WithServeMux(b.SetupRoutes()),
 			httpserver.WithAddress(b.Config.InteractionsConfig.Address),
 			httpserver.WithURL(b.Config.InteractionsConfig.URL),
 			httpserver.WithPublicKey(b.Config.InteractionsConfig.PublicKey),
@@ -107,8 +83,15 @@ func (b *Butler) SetupBot() {
 	); err != nil {
 		log.Errorf("Failed to start bot: %s", err)
 	}
-	b.GitHubClient = github.NewClient(b.Client.Rest().RestClient().HTTPClient())
-	b.DocClient = doc.WithCache(doc.New(b.Client.Rest().RestClient().HTTPClient(), godocs.Parser))
+	b.GitHubClient = github.NewClient(b.Client.Rest().HTTPClient())
+	b.DocClient = doc.WithCache(doc.New(b.Client.Rest().HTTPClient(), godocs.Parser))
+}
+
+func (b *Butler) SetupDB() {
+	var err error
+	if b.DB, err = db.SetupDatabase(b.Config.Database); err != nil {
+		log.Fatalf("Failed to setup database: %s", err)
+	}
 }
 
 func (b *Butler) StartAndBlock() {
@@ -127,23 +110,7 @@ func (b *Butler) StartAndBlock() {
 	log.Info("Shutting down...")
 }
 
-func (b *Butler) OnEvent(event bot.Event) {
-	switch e := event.(type) {
-	case *events.ReadyEvent:
-		b.OnReady()
-
-	case *events.ApplicationCommandInteractionEvent:
-		b.OnApplicationCommandInteraction(e)
-
-	case *events.ComponentInteractionEvent:
-		b.OnComponentInteraction(e)
-
-	case *events.AutocompleteInteractionEvent:
-		b.OnAutocompleteInteraction(e)
-	}
-}
-
-func (b *Butler) OnReady() {
+func (b *Butler) OnReady(_ *events.ReadyEvent) {
 	log.Infof("Butler ready")
 	if err := b.Client.SetPresence(context.TODO(), discord.GatewayMessageDataPresenceUpdate{
 		Activities: []discord.Activity{

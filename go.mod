@@ -3,10 +3,11 @@ module github.com/disgoorg/disgo-butler
 go 1.18
 
 require (
-	github.com/disgoorg/disgo v0.8.7
+	github.com/disgoorg/disgo v0.11.2
 	github.com/disgoorg/log v1.2.0
-	github.com/disgoorg/snowflake v1.1.0
-	github.com/google/go-github v17.0.0+incompatible
+	github.com/disgoorg/snowflake/v2 v2.0.0
+	github.com/go-chi/chi/v5 v5.0.7
+	github.com/google/go-github/v44 v44.1.0
 	github.com/hhhapz/doc v0.5.1
 	github.com/lithammer/fuzzysearch v1.1.3
 	github.com/uptrace/bun v1.0.22
@@ -19,7 +20,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.7.1 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

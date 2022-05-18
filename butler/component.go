@@ -2,12 +2,17 @@ package butler
 
 import (
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/log"
 )
+
+func (b *Butler) SetupComponents(components ...Component) {
+	for _, component := range components {
+		b.Components[component.Action] = component
+	}
+}
 
 func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
 	data := strings.Split(e.Data.CustomID().String(), ":")
@@ -15,8 +20,8 @@ func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
 	if len(data) > 1 {
 		data = append(data[:0], data[1:]...)
 	}
-	if handler := b.Components.Get(action); handler != nil {
-		if err := handler(b, data, e); err != nil {
+	if component, ok := b.Components[action]; ok {
+		if err := component.Handler(b, data, e); err != nil {
 			b.Client.Logger().Error("Error handling component: ", err)
 		}
 		return
@@ -24,70 +29,11 @@ func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
 	log.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
 }
 
-func NewComponents() *Components {
-	components := &Components{
-		components: map[string]Component{},
+type (
+	ComponentHandlerFunc func(b *Butler, data []string, e *events.ComponentInteractionEvent) error
+	Component            struct {
+		Action  string
+		Handler ComponentHandlerFunc
+		Timeout time.Time
 	}
-	components.startCleanup()
-	return components
-}
-
-type Components struct {
-	sync.RWMutex
-	components map[string]Component
-}
-
-type ComponentHandlerFunc func(b *Butler, data []string, e *events.ComponentInteractionEvent) error
-
-type Component struct {
-	Handler ComponentHandlerFunc
-	Timeout time.Time
-}
-
-func (c *Components) startCleanup() {
-	go func() {
-		for {
-			time.Sleep(time.Second * 10)
-			c.RLock()
-			for action, component := range c.components {
-				if component.Timeout.IsZero() {
-					continue
-				}
-				if time.Now().After(component.Timeout) {
-					c.Remove(action)
-				}
-			}
-			c.RUnlock()
-		}
-	}()
-}
-
-func (c *Components) Get(name string) ComponentHandlerFunc {
-	c.RLock()
-	defer c.RUnlock()
-	component, ok := c.components[name]
-	if !ok {
-		return nil
-	}
-	return component.Handler
-}
-
-func (c *Components) Add(action string, handler ComponentHandlerFunc, timeout time.Duration) {
-	c.Lock()
-	defer c.Unlock()
-
-	t := time.Time{}
-	if timeout > 0 {
-		t = time.Now().Add(timeout)
-	}
-	c.components[action] = Component{
-		Handler: handler,
-		Timeout: t,
-	}
-}
-
-func (c *Components) Remove(action string) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.components, action)
-}
+)

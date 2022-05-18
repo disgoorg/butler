@@ -28,6 +28,18 @@ func RespondErrMessage(e *events.ApplicationCommandInteractionEvent, message str
 	)
 }
 
+func RespondMessageErr(e *events.ApplicationCommandInteractionEvent, message string, err error) error {
+	return e.CreateMessage(discord.NewMessageCreateBuilder().
+		SetEmbeds(discord.NewEmbedBuilder().
+			SetDescriptionf(message, err).
+			SetColor(ColorError).
+			Build(),
+		).
+		SetEphemeral(true).
+		Build(),
+	)
+}
+
 func Respond(e *events.ApplicationCommandInteractionEvent, message string) error {
 	return e.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().

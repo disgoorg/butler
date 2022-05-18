@@ -2,9 +2,8 @@ package main
 
 import (
 	"github.com/disgoorg/disgo-butler/butler"
-	"github.com/disgoorg/disgo-butler/butler/commands"
-	"github.com/disgoorg/disgo-butler/butler/components"
-	"github.com/disgoorg/disgo-butler/butler/handlers"
+	commands2 "github.com/disgoorg/disgo-butler/commands"
+	"github.com/disgoorg/disgo-butler/components"
 	"github.com/disgoorg/log"
 )
 
@@ -18,9 +17,17 @@ func main() {
 	log.Info("starting Disgo-Butler...")
 
 	b := butler.New(*cfg)
-	b.SetupHTTPHandlers(handlers.Handlers)
 	b.SetupBot()
-	b.SetupCommands(commands.Commands)
-	b.SetupComponents(components.Components)
+	b.SetupDB()
+	b.SetupCommands(
+		commands2.PingCommand,
+		commands2.InfoCommand,
+		commands2.DocsCommand,
+		commands2.TagCommand,
+		commands2.TagsCommand,
+	)
+	b.SetupComponents(
+		components.ExpandComponent,
+	)
 	b.StartAndBlock()
 }

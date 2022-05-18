@@ -23,6 +23,32 @@ const (
 	typeFuncFormat         = "%s.%s"
 )
 
+var DocsCommand = butler.Command{
+	Create: discord.SlashCommandCreate{
+		CommandName: "docs",
+		Description: "Provides info to the provided module, type, function, etc.",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionString{
+				Name:         "module",
+				Description:  "The module to lookup. Example: github.com/disgoorg/disgo/core",
+				Required:     true,
+				Autocomplete: true,
+			},
+			discord.ApplicationCommandOptionString{
+				Name:         "query",
+				Description:  "The lookup query. Example: MessageCreate",
+				Autocomplete: true,
+			},
+		},
+	},
+	CommandHandlers: map[string]butler.HandleFunc{
+		"": handleDocs,
+	},
+	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
+		"": handleDocsAutocomplete,
+	},
+}
+
 func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	println("handleDocs")
 	data := e.SlashCommandInteractionData()

@@ -1,4 +1,4 @@
-package handlers
+package routes
 
 import (
 	"context"
@@ -11,32 +11,33 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/webhook"
 	"github.com/disgoorg/log"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v44/github"
 )
 
-func handleGithubWebhook(b *butler.Butler, w http.ResponseWriter, r *http.Request) {
-	payload, err := github.ValidatePayload(r, []byte(b.Config.GithubWebhookSecret))
-	if err != nil {
-		log.Errorf("Failed to validate payload: %s", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+func HandleGithub(b *butler.Butler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		payload, err := github.ValidatePayload(r, []byte(b.Config.GithubWebhookSecret))
+		if err != nil {
+			log.Errorf("Failed to validate payload: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		event, err := github.ParseWebHook(github.WebHookType(r), payload)
+		if err != nil {
+			log.Errorf("Failed to parse webhook: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		switch e := event.(type) {
+		case *github.ReleaseEvent:
+			err = processReleaseEvent(b, e)
+		}
+		if err != nil {
+			log.Errorf("Failed to process webhook: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
-	event, err := github.ParseWebHook(github.WebHookType(r), payload)
-	if err != nil {
-		log.Errorf("Failed to parse webhook: %s", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	switch e := event.(type) {
-	case *github.ReleaseEvent:
-		err = processReleaseEvent(b, e)
-	}
-	if err != nil {
-		log.Errorf("Failed to process webhook: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 }
 
 func substr(input string, start int, length int) string {
@@ -76,7 +77,7 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 		return err
 	}
 
-	comparison, _, err := b.GitHubClient.Repositories.CompareCommits(context.TODO(), org, repo, releases[1].GetTagName(), releases[0].GetTagName())
+	comparison, _, err := b.GitHubClient.Repositories.CompareCommits(context.TODO(), org, repo, releases[1].GetTagName(), releases[0].GetTagName(), nil)
 	if err != nil {
 		return err
 	}

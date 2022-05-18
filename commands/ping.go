@@ -6,6 +6,16 @@ import (
 	"github.com/disgoorg/disgo/events"
 )
 
+var PingCommand = butler.Command{
+	Create: discord.SlashCommandCreate{
+		CommandName: "ping",
+		Description: "Responds with pong",
+	},
+	CommandHandlers: map[string]butler.HandleFunc{
+		"": handlePing,
+	},
+}
+
 func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	return e.CreateMessage(discord.MessageCreate{Content: "Pong"})
 }

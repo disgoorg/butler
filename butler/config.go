@@ -5,8 +5,9 @@ import (
 	"errors"
 	"os"
 
+	"github.com/disgoorg/disgo-butler/db"
 	"github.com/disgoorg/log"
-	"github.com/disgoorg/snowflake"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 func LoadConfig() (*Config, error) {
@@ -52,13 +53,13 @@ func SaveConfig(config Config) error {
 }
 
 type Config struct {
-	DevMode    bool                `json:"dev_mode"`
-	DevGuildID snowflake.Snowflake `json:"dev_guild_id"`
-	LogLevel   log.Level           `json:"log_level"`
-	Token      string              `json:"token"`
+	DevMode    bool         `json:"dev_mode"`
+	DevGuildID snowflake.ID `json:"dev_guild_id"`
+	LogLevel   log.Level    `json:"log_level"`
+	Token      string       `json:"token"`
 
 	DocsConfig          DocsConfig                     `json:"docs"`
-	Database            DatabaseConfig                 `json:"database"`
+	Database            db.Config                      `json:"database"`
 	GithubWebhookSecret string                         `json:"github_webhook_secret"`
 	GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`
 	InteractionsConfig  InteractionsConfig             `json:"interactions"`
@@ -78,9 +79,9 @@ type DatabaseConfig struct {
 }
 
 type GithubReleaseConfig struct {
-	WebhookID    snowflake.Snowflake `json:"webhook_id"`
-	WebhookToken string              `json:"webhook_token"`
-	PingRole     snowflake.Snowflake `json:"ping_role"`
+	WebhookID    snowflake.ID `json:"webhook_id"`
+	WebhookToken string       `json:"webhook_token"`
+	PingRole     snowflake.ID `json:"ping_role"`
 }
 
 type InteractionsConfig struct {
