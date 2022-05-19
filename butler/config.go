@@ -58,7 +58,7 @@ type Config struct {
 	LogLevel   log.Level    `json:"log_level"`
 	Token      string       `json:"token"`
 
-	DocsConfig          DocsConfig                     `json:"docs"`
+	Docs                DocsConfig                     `json:"docs"`
 	Database            db.Config                      `json:"database"`
 	GithubWebhookSecret string                         `json:"github_webhook_secret"`
 	GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`

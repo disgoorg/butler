@@ -19,7 +19,7 @@ type Config struct {
 	Verbose  bool   `json:"verbose"`
 }
 
-func SetupDatabase(config Config) (DB, error) {
+func SetupDatabase(shouldSyncDBTables bool, config Config) (DB, error) {
 	db := bun.NewDB(sql.OpenDB(pgdriver.NewConnector(
 		pgdriver.WithAddr(config.Address),
 		pgdriver.WithUser(config.User),
@@ -30,8 +30,10 @@ func SetupDatabase(config Config) (DB, error) {
 
 	db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(config.Verbose)))
 
-	if _, err := db.NewCreateTable().Model((*Tag)(nil)).Exec(context.TODO()); err != nil {
-		return nil, err
+	if shouldSyncDBTables {
+		if _, err := db.NewCreateTable().Model((*Tag)(nil)).Exec(context.TODO()); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sqlDB{db: db}, nil

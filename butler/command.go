@@ -6,20 +6,24 @@ import (
 	"github.com/disgoorg/log"
 )
 
-func (b *Butler) SetupCommands(commands ...Command) {
+func (b *Butler) SetupCommands(shouldSyncCommands bool, commands ...Command) {
 	commandCreates := make([]discord.ApplicationCommandCreate, len(commands))
 	for i, command := range commands {
 		commandCreates[i] = command.Create
 		b.Commands[command.Create.Name()] = command
 	}
-	var err error
-	if b.Config.DevMode {
-		_, err = b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), b.Config.DevGuildID, commandCreates)
-	} else {
-		_, err = b.Client.Rest().SetGlobalCommands(b.Client.ApplicationID(), commandCreates)
-	}
-	if err != nil {
-		b.Client.Logger().Error("Failed to set commands: ", err)
+
+	if shouldSyncCommands {
+		b.Client.Logger().Info("Syncing commands...")
+		var err error
+		if b.Config.DevMode {
+			_, err = b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), b.Config.DevGuildID, commandCreates)
+		} else {
+			_, err = b.Client.Rest().SetGlobalCommands(b.Client.ApplicationID(), commandCreates)
+		}
+		if err != nil {
+			b.Client.Logger().Error("Failed to set commands: ", err)
+		}
 	}
 }
 
@@ -27,18 +31,20 @@ func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInt
 	if command, ok := b.Commands[e.Data.CommandName()]; ok {
 		var path string
 		if data, ok := e.Data.(discord.SlashCommandInteractionData); ok {
-			if data.SubCommandName != nil {
-				path += "/" + *data.SubCommandName
-			}
 			if data.SubCommandGroupName != nil {
-				path += "/" + *data.SubCommandGroupName
+				path += *data.SubCommandGroupName + "/"
+			}
+			if data.SubCommandName != nil {
+				path += *data.SubCommandName
 			}
 		}
 		if handler, ok := command.CommandHandlers[path]; ok {
 			if err := handler(b, e); err != nil {
 				b.Client.Logger().Error("Error handling command: ", err)
 			}
+			return
 		}
+		log.Warnf("No handler for command with path %s found", path)
 		return
 	}
 	log.Warnf("No handler for command with name %s found", e.Data.CommandName())
@@ -47,18 +53,20 @@ func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInt
 func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEvent) {
 	if command, ok := b.Commands[e.Data.CommandName]; ok {
 		var path string
-		if e.Data.SubCommandName != nil {
-			path += "/" + *e.Data.SubCommandName
-		}
 		if e.Data.SubCommandGroupName != nil {
-			path += "/" + *e.Data.SubCommandGroupName
+			path += *e.Data.SubCommandGroupName + "/"
+		}
+		if e.Data.SubCommandName != nil {
+			path += *e.Data.SubCommandName
 		}
 
 		if handler, ok := command.AutocompleteHandlers[path]; ok {
 			if err := handler(b, e); err != nil {
 				b.Client.Logger().Error("Error handling autocomplete: ", err)
 			}
+			return
 		}
+		log.Warnf("No handler for autocomplete with path %s found", path)
 		return
 	}
 	log.Warnf("No handler for autocomplete with name %s found", e.Data.CommandName)

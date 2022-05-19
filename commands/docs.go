@@ -30,7 +30,7 @@ var DocsCommand = butler.Command{
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionString{
 				Name:         "module",
-				Description:  "The module to lookup. Example: github.com/disgoorg/disgo/core",
+				Description:  "The module to lookup. Example: github.com/disgoorg/disgo/discord",
 				Required:     true,
 				Autocomplete: true,
 			},
@@ -50,7 +50,6 @@ var DocsCommand = butler.Command{
 }
 
 func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
-	println("handleDocs")
 	data := e.SlashCommandInteractionData()
 
 	pkg, err := b.DocClient.Search(context.Background(), data.String("module"))
@@ -197,7 +196,7 @@ func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionE
 					if choices.Len() > 24 {
 						return
 					}
-					choices.AddString(pkg.URL, pkg.URL)
+					choices.AddString(pkg.Name, pkg.URL)
 				}
 			})
 		} else {
@@ -205,8 +204,8 @@ func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionE
 			_, _ = b.DocClient.Search(context.TODO(), option.Value)
 			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
 				var packages []string
-				for name, pkg := range cache {
-					packages = append(packages, name)
+				for _, pkg := range cache {
+					packages = append(packages, pkg.URL)
 					for _, subName := range pkg.Subpackages {
 						packages = append(packages, subName)
 					}

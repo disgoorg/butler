@@ -28,6 +28,10 @@ func RespondErrMessage(e *events.ApplicationCommandInteractionEvent, message str
 	)
 }
 
+func RespondErrMessagef(e *events.ApplicationCommandInteractionEvent, message string, a ...any) error {
+	return RespondErrMessage(e, fmt.Sprintf(message, a...))
+}
+
 func RespondMessageErr(e *events.ApplicationCommandInteractionEvent, message string, err error) error {
 	return e.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
@@ -49,4 +53,8 @@ func Respond(e *events.ApplicationCommandInteractionEvent, message string) error
 		).
 		Build(),
 	)
+}
+
+func Respondf(e *events.ApplicationCommandInteractionEvent, message string, a ...any) error {
+	return Respond(e, fmt.Sprintf(message, a...))
 }

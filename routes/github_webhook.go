@@ -59,17 +59,17 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 		return nil
 	}
 
-	org, repo := e.GetRepo().GetOwner().GetLogin(), e.GetRepo().GetName()
+	org, repo, fullName := e.GetRepo().GetOwner().GetLogin(), e.GetRepo().GetName(), e.GetRepo().GetFullName()
 
-	cfg, ok := b.Config.GithubReleases[repo]
+	cfg, ok := b.Config.GithubReleases[fullName]
 	if !ok {
 		return errors.New("no config found for this repo")
 	}
 
-	webhookClient, ok := b.Webhooks[repo]
+	webhookClient, ok := b.Webhooks[fullName]
 	if !ok {
 		webhookClient = webhook.NewClient(cfg.WebhookID, cfg.WebhookToken)
-		b.Webhooks[repo] = webhookClient
+		b.Webhooks[fullName] = webhookClient
 	}
 
 	releases, _, err := b.GitHubClient.Repositories.ListReleases(context.TODO(), org, repo, &github.ListOptions{PerPage: 2})
