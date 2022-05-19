@@ -103,13 +103,15 @@ func (b *Butler) SetupDB(shouldSyncDBTables bool) {
 }
 
 func (b *Butler) StartAndBlock() {
-	if err := b.Client.ConnectGateway(context.TODO()); err != nil {
-		b.Logger.Errorf("Failed to connect to gateway: %s", err)
+	if b.Config.DevMode {
+		if err := b.Client.ConnectGateway(context.TODO()); err != nil {
+			b.Logger.Errorf("Failed to connect to gateway: %s", err)
+		}
+	} else {
+		if err := b.Client.StartHTTPServer(); err != nil {
+			b.Logger.Errorf("Failed to start http server: %s", err)
+		}
 	}
-
-	/*if err := b.Client.StartHTTPServer(); err != nil {
-		b.Logger.Errorf("Failed to start http server: %s", err)
-	}*/
 
 	b.Logger.Info("Client is running. Press CTRL-C to exit.")
 	s := make(chan os.Signal, 1)

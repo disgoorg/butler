@@ -241,13 +241,13 @@ func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractio
 }
 
 func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent, module string, query string) error {
-	println("query autocomplete: ", module, query)
 	pkg, err := b.DocClient.Search(context.Background(), module)
-	if err != nil {
-		fmt.Print("error searching: ", err)
+	if err == doc.InvalidStatusError(404) {
 		return e.Result([]discord.AutocompleteChoice{
 			discord.AutocompleteChoiceString{Name: "module not found", Value: ""},
 		})
+	} else if err != nil {
+		return e.Result(nil)
 	}
 	choices := make([]discord.AutocompleteChoiceString, 0, 25)
 	if query == "" {
@@ -256,6 +256,13 @@ func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteraction
 				break
 			}
 			choices = append(choices, discord.AutocompleteChoiceString{Name: t.Name, Value: t.Name})
+			for _, m := range t.Methods {
+				if len(choices) > 24 {
+					break
+				}
+				name := fmt.Sprintf("%s.%s", t.Name, m.Name)
+				choices = append(choices, discord.AutocompleteChoiceString{Name: name, Value: name})
+			}
 		}
 		for _, f := range pkg.Functions {
 			if len(choices) > 24 {
@@ -264,17 +271,17 @@ func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteraction
 			choices = append(choices, discord.AutocompleteChoiceString{Name: f.Name, Value: f.Name})
 		}
 	} else {
-		var types []string
+		var symbols []string
 		for _, t := range pkg.Types {
-			types = append(types, t.Name)
+			symbols = append(symbols, t.Name)
 			for _, m := range t.Methods {
-				types = append(types, fmt.Sprintf("%s.%s", t.Name, m.Name))
+				symbols = append(symbols, fmt.Sprintf("%s.%s", t.Name, m.Name))
 			}
 		}
 		for _, f := range pkg.Functions {
-			types = append(types, f.Name)
+			symbols = append(symbols, f.Name)
 		}
-		ranks := fuzzy.RankFindFold(query, types)
+		ranks := fuzzy.RankFindFold(query, symbols)
 		sort.Sort(ranks)
 
 		for _, rank := range ranks {
