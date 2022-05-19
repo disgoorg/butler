@@ -225,9 +225,7 @@ func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractio
 			var packages []string
 			for _, pkg := range cache {
 				packages = append(packages, pkg.URL)
-				for _, subName := range pkg.Subpackages {
-					packages = append(packages, subName)
-				}
+				packages = append(packages, pkg.Subpackages...)
 			}
 			ranks := fuzzy.RankFindFold(module, packages)
 			sort.Sort(ranks)
