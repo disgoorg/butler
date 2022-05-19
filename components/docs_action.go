@@ -27,7 +27,7 @@ func handleDocsAction(b *butler.Butler, _ []string, e *events.ComponentInteracti
 	values := strings.SplitN(e.Message.Embeds[0].Title, ": ", 2)
 	pkg, err := b.DocClient.Search(context.Background(), values[0])
 	if err != nil {
-		return common.RespondErrMessagef(e.Respond, "Error while fetching package: ", err)
+		return common.RespondErrMessagef(e.Respond, "Error while fetching package: %s", err)
 	}
 	if !strings.HasPrefix(action, "expand:") {
 		return common.RespondErrMessagef(e.Respond, "Unknown action: %s", action)
