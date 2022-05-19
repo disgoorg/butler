@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/disgoorg/disgo-butler/butler"
@@ -109,7 +110,9 @@ func handleAliasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionE
 	data := e.SlashCommandInteractionData()
 	module := data.String("module")
 	alias := data.String("alias")
-
+	go func() {
+		_, _ = b.DocClient.Search(context.TODO(), module)
+	}()
 	b.Config.Docs.Aliases[alias] = module
 	if err := butler.SaveConfig(b.Config); err != nil {
 		return common.RespondErr(e.Respond, err)
