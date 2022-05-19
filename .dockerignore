@@ -1,6 +1,5 @@
 .editorconfig
 README.md
 LICENSE
-Dockerfile
 config.json
 config.json.example
