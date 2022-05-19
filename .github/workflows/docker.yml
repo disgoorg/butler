@@ -1,14 +1,20 @@
 name: Docker
 
 on:
-    release:
-        types: [published]
+    push:
+        branches:
+            - master
+        tags:
+            - v*
+    pull_request:
+
 env:
     IMAGE_NAME: disgo-butler
 
 jobs:
     push:
         runs-on: ubuntu-latest
+        if: github.event_name == 'push'
         steps:
             - uses: actions/checkout@v2
 
@@ -20,13 +26,12 @@ jobs:
 
             - name: Push image
               run: |
-                  IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
-                  IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-                  VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-                  [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-                  [ "$VERSION" == "master" ] && VERSION=latest
-                  echo IMAGE_ID=$IMAGE_ID
-                  echo VERSION=$VERSION
-                  docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-                  docker tag $IMAGE_NAME $IMAGE_ID:latest
-                  docker push --all-tags $IMAGE_ID
+                IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
+                IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+                VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+                [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+                [ "$VERSION" == "master" ] && VERSION=latest
+                echo IMAGE_ID=$IMAGE_ID
+                echo VERSION=$VERSION
+                docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+                docker push $IMAGE_ID:$VERSION
