@@ -1,12 +1,16 @@
 package commands
 
 import (
+	"database/sql"
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/utils/paginator"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
@@ -36,9 +40,10 @@ var TagsCommand = butler.Command{
 				Description: "let's you delete a tag",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:        "name",
-						Description: "the name of the tag to delete",
-						Required:    true,
+						Name:         "name",
+						Description:  "the name of the tag to delete",
+						Required:     true,
+						Autocomplete: true,
 					},
 				},
 			},
@@ -47,9 +52,10 @@ var TagsCommand = butler.Command{
 				Description: "let's you edit a tag",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:        "name",
-						Description: "the name of the tag to edit",
-						Required:    true,
+						Name:         "name",
+						Description:  "the name of the tag to edit",
+						Required:     true,
+						Autocomplete: true,
 					},
 					discord.ApplicationCommandOptionString{
 						Name:        "content",
@@ -84,8 +90,10 @@ var TagsCommand = butler.Command{
 		"list":   listTagHandler,
 	},
 	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
-		"list": autoCompleteListTagHandler,
-		"info": autoCompleteListTagHandler,
+		"edit":   autoCompleteListTagHandler,
+		"delete": autoCompleteListTagHandler,
+		"list":   autoCompleteListTagHandler,
+		"info":   autoCompleteListTagHandler,
 	},
 }
 
@@ -115,18 +123,68 @@ func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionE
 
 func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	data := e.SlashCommandInteractionData()
-	if err := b.DB.Delete(*e.GuildID(), formatTagName(data.String("name"))); err != nil {
-		return common.RespondMessageErr(e, "Failed to delete tag: ", err)
+	name := formatTagName(data.String("name"))
+	tag, err := b.DB.Get(*e.GuildID(), name)
+	if err == sql.ErrNoRows {
+		return common.Respondf(e, "Tag `%s` does not exist.", name)
+	} else if err != nil {
+		return common.RespondMessageErr(e, "Failed to get tag info: ", err)
 	}
-	return common.Respond(e, "Tag deleted.")
+	return e.CreateMessage(discord.MessageCreate{
+		Embeds: []discord.Embed{
+			{
+				Title:       fmt.Sprintf("Tag `%s`", name),
+				Description: tag.Content,
+				Fields: []discord.EmbedField{
+					{
+						Name:  "Created by",
+						Value: discord.UserMention(tag.OwnerID),
+					},
+					{
+						Name:  "Uses",
+						Value: strconv.Itoa(tag.Uses),
+					},
+					{
+						Name:  "Created at",
+						Value: fmt.Sprintf("%s (%s)", discord.NewTimestamp(discord.TimestampStyleNone, tag.CreatedAt), discord.NewTimestamp(discord.TimestampStyleRelative, tag.CreatedAt)),
+					},
+				},
+			},
+		},
+	})
 }
 
 func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
-	data := e.SlashCommandInteractionData()
-	if err := b.DB.Delete(*e.GuildID(), formatTagName(data.String("name"))); err != nil {
-		return common.RespondMessageErr(e, "Failed to delete tag: ", err)
+	tags, err := b.DB.GetAll(*e.GuildID())
+	if err != nil {
+		return common.RespondMessageErr(e, "Failed to list tags: ", err)
 	}
-	return common.Respond(e, "Tag deleted.")
+	if len(tags) == 0 {
+		return common.Respond(e, "No tags found.")
+	}
+
+	var pages []string
+	curPage := ""
+	for _, tag := range tags {
+		newPage := fmt.Sprintf("**%s** - %s\n", tag.Name, discord.UserMention(tag.OwnerID))
+		if len(curPage)+len(newPage) > 2000 {
+			pages = append(pages, curPage)
+			curPage = ""
+		}
+		curPage += newPage
+	}
+	if len(curPage) > 0 {
+		pages = append(pages, curPage)
+	}
+
+	return b.Paginator.Create(e.Respond, &paginator.Paginator{
+		PageFunc: func(page int, embed *discord.EmbedBuilder) {
+			embed.SetDescription(pages[page])
+		},
+		MaxPages:        len(pages),
+		ExpiryLastUsage: true,
+		ID:              e.ID().String(),
+	})
 }
 
 func autoCompleteListTagHandler(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {

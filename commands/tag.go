@@ -12,18 +12,22 @@ import (
 var TagCommand = butler.Command{
 	Create: discord.SlashCommandCreate{
 		CommandName: "tag",
-		Description: "let's you display a tag",
+		Description: "Let's you display a tag",
 		Options: []discord.ApplicationCommandOption{
 
 			discord.ApplicationCommandOptionString{
-				Name:        "name",
-				Description: "the name of the tag to display",
-				Required:    true,
+				Name:         "name",
+				Description:  "The name of the tag to display",
+				Required:     true,
+				Autocomplete: true,
 			},
 		},
 	},
 	CommandHandlers: map[string]butler.HandleFunc{
 		"": tagHandler,
+	},
+	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
+		"": autoCompleteListTagHandler,
 	},
 }
 

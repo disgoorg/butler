@@ -37,6 +37,7 @@ var DocsCommand = butler.Command{
 			discord.ApplicationCommandOptionString{
 				Name:         "query",
 				Description:  "The lookup query. Example: MessageCreate",
+				Required:     true,
 				Autocomplete: true,
 			},
 		},
@@ -184,89 +185,106 @@ func (c *UniqueChoices) AddString(name string, value string) {
 }
 
 func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
-	choices := &UniqueChoices{set: map[string]struct{}{}}
-	if option, ok := e.Data.StringOption("module"); ok && option.Focused() {
-		if option.Value == "" {
-			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
-				if len(cache) == 0 {
-					choices.AddString("No modules found", "nothing")
-					return
-				}
-				for _, pkg := range cache {
-					if choices.Len() > 24 {
-						return
-					}
-					choices.AddString(pkg.Name, pkg.URL)
-				}
-			})
-		} else {
-			choices.AddString(option.Value, option.Value)
-			_, _ = b.DocClient.Search(context.TODO(), option.Value)
-			b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
-				var packages []string
-				for _, pkg := range cache {
-					packages = append(packages, pkg.URL)
-					for _, subName := range pkg.Subpackages {
-						packages = append(packages, subName)
-					}
-				}
-				ranks := fuzzy.RankFindFold(option.Value, packages)
-				sort.Sort(ranks)
+	moduleOption, moduleOptionOk := e.Data.StringOption("module")
+	if moduleOptionOk && moduleOption.Focused() {
+		return handleModuleAutocomplete(b, e, moduleOption.Value)
+	}
+	if option, ok := e.Data.StringOption("query"); ok && option.Focused() {
+		return handleQueryAutocomplete(b, e, moduleOption.Value, option.Value)
+	}
+	return e.Result(nil)
+}
 
-				if len(ranks) > 24 {
-					ranks = ranks[:24]
-				}
-
-				for _, rank := range ranks {
-					if choices.Len() > 24 {
-						break
-					}
-					choices.AddString(rank.Target, rank.Target)
-				}
-			})
-		}
-	} else if option, ok := e.Data.StringOption("query"); ok && option.Focused() {
-		pkg, err := b.DocClient.Search(context.Background(), e.Data.String("module"))
-		if err != nil {
-			choices.AddString("module not found", "nothing")
-		} else {
-			if option.Value == "" {
-				for _, t := range pkg.Types {
-					if choices.Len() > 24 {
-						break
-					}
-					choices.AddString(t.Name, t.Name)
-				}
-				for _, f := range pkg.Functions {
-					if choices.Len() > 24 {
-						break
-					}
-					choices.AddString(f.Name, f.Name)
-				}
-			} else {
-				var types []string
-				for _, t := range pkg.Types {
-					types = append(types, t.Name)
-					for _, m := range t.Methods {
-						types = append(types, fmt.Sprintf("%s.%s", t.Name, m.Name))
-					}
-				}
-				for _, f := range pkg.Functions {
-					types = append(types, f.Name)
-				}
-				ranks := fuzzy.RankFindFold(option.Value, types)
-				sort.Sort(ranks)
-
-				for _, rank := range ranks {
-					if choices.Len() > 24 {
-						break
-					}
-					choices.AddString(rank.Target, rank.Target)
-				}
+func replaceAliases(b *butler.Butler, choices []discord.AutocompleteChoiceString) []discord.AutocompleteChoice {
+	newChoices := make([]discord.AutocompleteChoice, len(choices))
+	for i, choice := range choices {
+		for alias, module := range b.Config.Docs.Aliases {
+			if strings.HasPrefix(choice.Value, module) {
+				choice.Name = strings.Replace(choice.Name, module, alias, 1)
 			}
 		}
-	} else {
-		choices.AddString("No results found", "nothing")
+		newChoices[i] = choice
 	}
-	return e.Result(choices.choices)
+	return newChoices
+}
+
+func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent, module string) error {
+	choices := make([]discord.AutocompleteChoiceString, 0, 25)
+	if module == "" {
+		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
+			for _, pkg := range cache {
+				if len(choices) > 24 {
+					return
+				}
+				choices = append(choices, discord.AutocompleteChoiceString{Name: pkg.URL, Value: pkg.URL})
+			}
+		})
+	} else {
+		_, _ = b.DocClient.Search(context.TODO(), module)
+		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
+			var packages []string
+			for _, pkg := range cache {
+				packages = append(packages, pkg.URL)
+				for _, subName := range pkg.Subpackages {
+					packages = append(packages, subName)
+				}
+			}
+			ranks := fuzzy.RankFindFold(module, packages)
+			sort.Sort(ranks)
+			for _, rank := range ranks {
+				if len(choices) > 24 {
+					break
+				}
+				choices = append(choices, discord.AutocompleteChoiceString{Name: rank.Target, Value: rank.Target})
+			}
+		})
+	}
+	return e.Result(replaceAliases(b, choices))
+}
+
+func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent, module string, query string) error {
+	println("query autocomplete: ", module, query)
+	pkg, err := b.DocClient.Search(context.Background(), module)
+	if err != nil {
+		fmt.Print("error searching: ", err)
+		return e.Result([]discord.AutocompleteChoice{
+			discord.AutocompleteChoiceString{Name: "module not found", Value: ""},
+		})
+	}
+	choices := make([]discord.AutocompleteChoiceString, 0, 25)
+	if query == "" {
+		for _, t := range pkg.Types {
+			if len(choices) > 24 {
+				break
+			}
+			choices = append(choices, discord.AutocompleteChoiceString{Name: t.Name, Value: t.Name})
+		}
+		for _, f := range pkg.Functions {
+			if len(choices) > 24 {
+				break
+			}
+			choices = append(choices, discord.AutocompleteChoiceString{Name: f.Name, Value: f.Name})
+		}
+	} else {
+		var types []string
+		for _, t := range pkg.Types {
+			types = append(types, t.Name)
+			for _, m := range t.Methods {
+				types = append(types, fmt.Sprintf("%s.%s", t.Name, m.Name))
+			}
+		}
+		for _, f := range pkg.Functions {
+			types = append(types, f.Name)
+		}
+		ranks := fuzzy.RankFindFold(query, types)
+		sort.Sort(ranks)
+
+		for _, rank := range ranks {
+			if len(choices) > 24 {
+				break
+			}
+			choices = append(choices, discord.AutocompleteChoiceString{Name: rank.Target, Value: rank.Target})
+		}
+	}
+	return e.Result(replaceAliases(b, choices))
 }

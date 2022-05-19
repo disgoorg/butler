@@ -10,7 +10,6 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/webhook"
-	"github.com/disgoorg/log"
 	"github.com/google/go-github/v44/github"
 )
 
@@ -18,13 +17,13 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, err := github.ValidatePayload(r, []byte(b.Config.GithubWebhookSecret))
 		if err != nil {
-			log.Errorf("Failed to validate payload: %s", err)
+			b.Logger.Errorf("Failed to validate payload: %s", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		event, err := github.ParseWebHook(github.WebHookType(r), payload)
 		if err != nil {
-			log.Errorf("Failed to parse webhook: %s", err)
+			b.Logger.Errorf("Failed to parse webhook: %s", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -33,7 +32,7 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			err = processReleaseEvent(b, e)
 		}
 		if err != nil {
-			log.Errorf("Failed to process webhook: %s", err)
+			b.Logger.Errorf("Failed to process webhook: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

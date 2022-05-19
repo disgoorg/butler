@@ -3,7 +3,6 @@ package butler
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/log"
 )
 
 func (b *Butler) SetupCommands(shouldSyncCommands bool, commands ...Command) {
@@ -44,10 +43,10 @@ func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInt
 			}
 			return
 		}
-		log.Warnf("No handler for command with path %s found", path)
+		b.Logger.Warnf("No handler for command with path %s found", path)
 		return
 	}
-	log.Warnf("No handler for command with name %s found", e.Data.CommandName())
+	b.Logger.Warnf("No handler for command with name %s found", e.Data.CommandName())
 }
 
 func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEvent) {
@@ -66,10 +65,10 @@ func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEven
 			}
 			return
 		}
-		log.Warnf("No handler for autocomplete with path %s found", path)
+		b.Logger.Warnf("No handler for autocomplete with path %s found", path)
 		return
 	}
-	log.Warnf("No handler for autocomplete with name %s found", e.Data.CommandName)
+	b.Logger.Warnf("No handler for autocomplete with name %s found", e.Data.CommandName)
 }
 
 type (

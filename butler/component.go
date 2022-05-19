@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/log"
 )
 
 func (b *Butler) SetupComponents(components ...Component) {
@@ -26,7 +25,7 @@ func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
 		}
 		return
 	}
-	log.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
+	b.Logger.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
 }
 
 type (

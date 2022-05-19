@@ -30,11 +30,11 @@ func main() {
 		panic("failed to load config: " + err.Error())
 	}
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetLevel(cfg.LogLevel)
-	log.Info("starting Disgo-Butler...")
+	logger := log.New(log.LstdFlags | log.Lshortfile)
+	logger.SetLevel(cfg.LogLevel)
+	logger.Info("starting Disgo-Butler...")
 
-	b := butler.New(version, *cfg)
+	b := butler.New(logger, version, *cfg)
 
 	r := chi.NewRouter()
 	r.Post("/github", routes.HandleGithub(b))

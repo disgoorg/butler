@@ -6,6 +6,7 @@ require (
 	github.com/disgoorg/disgo v0.11.3
 	github.com/disgoorg/log v1.2.0
 	github.com/disgoorg/snowflake/v2 v2.0.0
+	github.com/disgoorg/utils/paginator v0.0.0-20220508114002-e54729de3f3b
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/go-github/v44 v44.1.0
 	github.com/hhhapz/doc v0.5.1
