@@ -34,9 +34,9 @@ var TagCommand = butler.Command{
 func tagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
 	if err == sql.ErrNoRows {
-		return common.RespondErrMessage(e, "Tag not found")
+		return common.RespondErrMessage(e.Respond, "Tag not found")
 	} else if err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
 	return e.CreateMessage(discord.MessageCreate{
 		Content: tag.Content,

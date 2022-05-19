@@ -100,25 +100,25 @@ var TagsCommand = butler.Command{
 func createTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	data := e.SlashCommandInteractionData()
 	if err := b.DB.Create(*e.GuildID(), e.User().ID, formatTagName(data.String("name")), data.String("content")); err != nil {
-		return common.RespondMessageErr(e, "Failed to create tag: ", err)
+		return common.RespondMessageErr(e.Respond, "Failed to create tag: ", err)
 	}
-	return common.Respond(e, "Tag created!")
+	return common.Respond(e.Respond, "Tag created!")
 }
 
 func editTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	data := e.SlashCommandInteractionData()
 	if err := b.DB.Edit(*e.GuildID(), formatTagName(data.String("name")), data.String("content")); err != nil {
-		return common.RespondMessageErr(e, "Failed to edit tag: ", err)
+		return common.RespondMessageErr(e.Respond, "Failed to edit tag: ", err)
 	}
-	return common.Respond(e, "Tag edited.")
+	return common.Respond(e.Respond, "Tag edited.")
 }
 
 func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	data := e.SlashCommandInteractionData()
 	if err := b.DB.Delete(*e.GuildID(), formatTagName(data.String("name"))); err != nil {
-		return common.RespondMessageErr(e, "Failed to delete tag: ", err)
+		return common.RespondMessageErr(e.Respond, "Failed to delete tag: ", err)
 	}
-	return common.Respond(e, "Tag deleted.")
+	return common.Respond(e.Respond, "Tag deleted.")
 }
 
 func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -126,9 +126,9 @@ func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEve
 	name := formatTagName(data.String("name"))
 	tag, err := b.DB.Get(*e.GuildID(), name)
 	if err == sql.ErrNoRows {
-		return common.Respondf(e, "Tag `%s` does not exist.", name)
+		return common.Respondf(e.Respond, "Tag `%s` does not exist.", name)
 	} else if err != nil {
-		return common.RespondMessageErr(e, "Failed to get tag info: ", err)
+		return common.RespondMessageErr(e.Respond, "Failed to get tag info: ", err)
 	}
 	return e.CreateMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{
@@ -157,10 +157,10 @@ func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEve
 func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
 	tags, err := b.DB.GetAll(*e.GuildID())
 	if err != nil {
-		return common.RespondMessageErr(e, "Failed to list tags: ", err)
+		return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
 	}
 	if len(tags) == 0 {
-		return common.Respond(e, "No tags found.")
+		return common.Respond(e.Respond, "No tags found.")
 	}
 
 	var pages []string

@@ -12,12 +12,12 @@ const (
 	ColorSuccess = 0x5c5fea
 )
 
-func RespondErr(e *events.ApplicationCommandInteractionEvent, err error) error {
-	return RespondErrMessage(e, fmt.Sprintf("Error while executing: %s", err))
+func RespondErr(respondFunc events.InteractionResponderFunc, err error) error {
+	return RespondErrMessage(respondFunc, fmt.Sprintf("Error while executing: %s", err))
 }
 
-func RespondErrMessage(e *events.ApplicationCommandInteractionEvent, message string) error {
-	return e.CreateMessage(discord.NewMessageCreateBuilder().
+func RespondErrMessage(respondFunc events.InteractionResponderFunc, message string) error {
+	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescription(message).
 			SetColor(ColorError).
@@ -28,12 +28,12 @@ func RespondErrMessage(e *events.ApplicationCommandInteractionEvent, message str
 	)
 }
 
-func RespondErrMessagef(e *events.ApplicationCommandInteractionEvent, message string, a ...any) error {
-	return RespondErrMessage(e, fmt.Sprintf(message, a...))
+func RespondErrMessagef(respondFunc events.InteractionResponderFunc, message string, a ...any) error {
+	return RespondErrMessage(respondFunc, fmt.Sprintf(message, a...))
 }
 
-func RespondMessageErr(e *events.ApplicationCommandInteractionEvent, message string, err error) error {
-	return e.CreateMessage(discord.NewMessageCreateBuilder().
+func RespondMessageErr(respondFunc events.InteractionResponderFunc, message string, err error) error {
+	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescriptionf(message, err).
 			SetColor(ColorError).
@@ -44,8 +44,8 @@ func RespondMessageErr(e *events.ApplicationCommandInteractionEvent, message str
 	)
 }
 
-func Respond(e *events.ApplicationCommandInteractionEvent, message string) error {
-	return e.CreateMessage(discord.NewMessageCreateBuilder().
+func Respond(respondFunc events.InteractionResponderFunc, message string) error {
+	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescription(message).
 			SetColor(ColorSuccess).
@@ -55,6 +55,6 @@ func Respond(e *events.ApplicationCommandInteractionEvent, message string) error
 	)
 }
 
-func Respondf(e *events.ApplicationCommandInteractionEvent, message string, a ...any) error {
-	return Respond(e, fmt.Sprintf(message, a...))
+func Respondf(respondFunc events.InteractionResponderFunc, message string, a ...any) error {
+	return Respond(respondFunc, fmt.Sprintf(message, a...))
 }

@@ -112,9 +112,9 @@ func handleAliasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionE
 
 	b.Config.Docs.Aliases[alias] = module
 	if err := butler.SaveConfig(b.Config); err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
-	return common.Respondf(e, "Added alias `%s` for module `%s`.", alias, module)
+	return common.Respondf(e.Respond, "Added alias `%s` for module `%s`.", alias, module)
 }
 
 func handleAliasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -122,14 +122,14 @@ func handleAliasesRemove(b *butler.Butler, e *events.ApplicationCommandInteracti
 	alias := data.String("alias")
 
 	if _, ok := b.Config.Docs.Aliases[alias]; !ok {
-		return common.RespondErrMessagef(e, "alias `%s` does not exist", alias)
+		return common.RespondErrMessagef(e.Respond, "alias `%s` does not exist", alias)
 	}
 
 	delete(b.Config.Docs.Aliases, alias)
 	if err := butler.SaveConfig(b.Config); err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
-	return common.Respondf(e, "Removed alias `%s`.", alias)
+	return common.Respondf(e.Respond, "Removed alias `%s`.", alias)
 }
 
 func handleAliasesList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -137,7 +137,7 @@ func handleAliasesList(b *butler.Butler, e *events.ApplicationCommandInteraction
 	for alias, module := range b.Config.Docs.Aliases {
 		message += fmt.Sprintf("•`%s` -> `%s`\n", alias, module)
 	}
-	return common.Respondf(e, "Aliases:\n%s", message)
+	return common.Respondf(e.Respond, "Aliases:\n%s", message)
 }
 
 func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -148,7 +148,7 @@ func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteraction
 
 	webhook, err := b.Client.Rest().CreateWebhook(channelID, discord.WebhookCreate{Name: name})
 	if err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
 
 	if b.Config.GithubReleases == nil {
@@ -161,9 +161,9 @@ func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteraction
 		PingRole:     pingRoleID,
 	}
 	if err = butler.SaveConfig(b.Config); err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
-	return common.Respondf(e, "Added release announcement for `%s`.", name)
+	return common.Respondf(e.Respond, "Added release announcement for `%s`.", name)
 }
 
 func handleReleasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -171,14 +171,14 @@ func handleReleasesRemove(b *butler.Butler, e *events.ApplicationCommandInteract
 	name := data.String("name")
 
 	if _, ok := b.Config.GithubReleases[name]; !ok {
-		return common.RespondErrMessagef(e, "release `%s` does not exist", name)
+		return common.RespondErrMessagef(e.Respond, "release `%s` does not exist", name)
 	}
 
 	delete(b.Config.GithubReleases, name)
 	if err := butler.SaveConfig(b.Config); err != nil {
-		return common.RespondErr(e, err)
+		return common.RespondErr(e.Respond, err)
 	}
-	return common.Respondf(e, "Removed release announcement for `%s`.", name)
+	return common.Respondf(e.Respond, "Removed release announcement for `%s`.", name)
 }
 
 func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
@@ -186,5 +186,5 @@ func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractio
 	for name := range b.Config.GithubReleases {
 		message += fmt.Sprintf("•`%s`\n", name)
 	}
-	return common.Respondf(e, "Releases:\n%s", message)
+	return common.Respondf(e.Respond, "Releases:\n%s", message)
 }
