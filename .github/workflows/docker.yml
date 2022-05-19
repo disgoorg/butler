@@ -2,14 +2,13 @@ name: Docker
 
 on:
     release:
-        types: [created]
+        types: [published]
 env:
     IMAGE_NAME: disgo-butler
 
 jobs:
     push:
         runs-on: ubuntu-latest
-        if: github.event_name == 'push'
         steps:
             - uses: actions/checkout@v2
 
