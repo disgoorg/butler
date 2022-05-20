@@ -9,6 +9,7 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo/discord"
+	"golang.org/x/exp/slices"
 )
 
 //go:embed templates/*
@@ -79,7 +80,9 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			}
 			for _, contributor := range contributors {
 				if contributor.GetLogin() == conn.Name {
-					roleIDs = append(roleIDs, roleID)
+					if !slices.Contains(roleIDs, roleID) {
+						roleIDs = append(roleIDs, roleID)
+					}
 					repos = append(repos, repo)
 					break
 				}

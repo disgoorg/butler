@@ -15,6 +15,7 @@ require (
 	github.com/uptrace/bun/dialect/pgdialect v1.0.22
 	github.com/uptrace/bun/driver/pgdriver v1.0.22
 	github.com/uptrace/bun/extra/bundebug v1.0.22
+	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8
 )
 
 require (
@@ -31,7 +32,6 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20220126234351-aa10faf2a1f8 // indirect
-	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/text v0.3.7 // indirect
