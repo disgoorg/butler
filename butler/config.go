@@ -53,16 +53,19 @@ func SaveConfig(config Config) error {
 }
 
 type Config struct {
-	DevMode    bool         `json:"dev_mode"`
-	DevGuildID snowflake.ID `json:"dev_guild_id"`
-	LogLevel   log.Level    `json:"log_level"`
-	Token      string       `json:"token"`
+	DevMode  bool         `json:"dev_mode"`
+	GuildID  snowflake.ID `json:"guild_id"`
+	LogLevel log.Level    `json:"log_level"`
+	Token    string       `json:"token"`
+	Secret   string       `json:"secret"`
+	BaseURL  string       `json:"base_url"`
 
 	Docs                DocsConfig                     `json:"docs"`
 	Database            db.Config                      `json:"database"`
 	GithubWebhookSecret string                         `json:"github_webhook_secret"`
 	GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`
-	InteractionsConfig  InteractionsConfig             `json:"interactions"`
+	Interactions        InteractionsConfig             `json:"interactions"`
+	ContributorRepos    map[string]snowflake.ID        `json:"contributor_repos"`
 }
 
 type DocsConfig struct {

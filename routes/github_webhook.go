@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-github/v44/github"
 )
 
-func HandleGithub(b *butler.Butler) http.HandlerFunc {
+func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, err := github.ValidatePayload(r, []byte(b.Config.GithubWebhookSecret))
 		if err != nil {
@@ -75,8 +75,15 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 	if err != nil {
 		return err
 	}
+	var previousRelease *github.RepositoryRelease
+	for _, release := range releases {
+		if release.GetTagName() != e.GetRelease().GetTagName() {
+			previousRelease = release
+			break
+		}
+	}
 
-	comparison, _, err := b.GitHubClient.Repositories.CompareCommits(context.TODO(), org, repo, releases[1].GetTagName(), releases[0].GetTagName(), nil)
+	comparison, _, err := b.GitHubClient.Repositories.CompareCommits(context.TODO(), org, repo, previousRelease.GetTagName(), e.GetRelease().GetTagName(), nil)
 	if err != nil {
 		return err
 	}

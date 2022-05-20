@@ -16,7 +16,7 @@ func (b *Butler) SetupCommands(shouldSyncCommands bool, commands ...Command) {
 		b.Client.Logger().Info("Syncing commands...")
 		var err error
 		if b.Config.DevMode {
-			_, err = b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), b.Config.DevGuildID, commandCreates)
+			_, err = b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), b.Config.GuildID, commandCreates)
 		} else {
 			_, err = b.Client.Rest().SetGlobalCommands(b.Client.ApplicationID(), commandCreates)
 		}

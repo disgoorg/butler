@@ -15,6 +15,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/httpserver"
+	"github.com/disgoorg/disgo/oauth2"
 	"github.com/disgoorg/disgo/webhook"
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/utils/paginator"
@@ -37,6 +38,7 @@ func New(logger log.Logger, version string, config Config) *Butler {
 
 type Butler struct {
 	Client       bot.Client
+	OAuth2       oauth2.Client
 	Logger       log.Logger
 	Mux          *http.ServeMux
 	GitHubClient *github.Client
@@ -79,14 +81,17 @@ func (b *Butler) SetupBot() {
 		bot.WithEventListeners(b.Paginator),
 		bot.WithHTTPServerConfigOpts(
 			httpserver.WithServeMux(b.Mux),
-			httpserver.WithAddress(b.Config.InteractionsConfig.Address),
-			httpserver.WithURL(b.Config.InteractionsConfig.URL),
-			httpserver.WithPublicKey(b.Config.InteractionsConfig.PublicKey),
+			httpserver.WithAddress(b.Config.Interactions.Address),
+			httpserver.WithURL(b.Config.Interactions.URL),
+			httpserver.WithPublicKey(b.Config.Interactions.PublicKey),
 		),
 		bot.WithLogger(b.Logger),
 	); err != nil {
 		b.Logger.Errorf("Failed to start bot: %s", err)
 	}
+
+	b.OAuth2 = oauth2.New(b.Client.ApplicationID(), b.Config.Secret)
+
 	b.GitHubClient = github.NewClient(b.Client.Rest().HTTPClient())
 	b.DocClient = doc.WithCache(doc.New(b.Client.Rest().HTTPClient(), godocs.Parser))
 	b.Logger.Info("Loading go modules aliases...")
@@ -107,10 +112,9 @@ func (b *Butler) StartAndBlock() {
 		if err := b.Client.ConnectGateway(context.TODO()); err != nil {
 			b.Logger.Errorf("Failed to connect to gateway: %s", err)
 		}
-	} else {
-		if err := b.Client.StartHTTPServer(); err != nil {
-			b.Logger.Errorf("Failed to start http server: %s", err)
-		}
+	}
+	if err := b.Client.StartHTTPServer(); err != nil {
+		b.Logger.Errorf("Failed to start http server: %s", err)
 	}
 
 	b.Logger.Info("Client is running. Press CTRL-C to exit.")

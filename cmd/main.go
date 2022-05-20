@@ -37,8 +37,11 @@ func main() {
 	b := butler.New(logger, version, *cfg)
 
 	r := chi.NewRouter()
-	r.Post("/github", routes.HandleGithub(b))
-	r.Get("/login", routes.HandleLogin(b))
+	r.Route("/github", func(r chi.Router) {
+		r.Get("/", routes.HandleGithub(b))
+		r.Get("/login", routes.HandleLogin(b))
+		r.Post("/webhook", routes.HandleGithubWebhook(b))
+	})
 	b.SetupRoutes(r)
 
 	b.SetupBot()
