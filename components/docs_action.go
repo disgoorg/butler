@@ -29,25 +29,28 @@ func handleDocsAction(b *butler.Butler, _ []string, e *events.ComponentInteracti
 	if err != nil {
 		return common.RespondErrMessagef(e.Respond, "Error while fetching package: %s", err)
 	}
-	if !strings.HasPrefix(action, "expand:") {
-		return common.RespondErrMessagef(e.Respond, "Unknown action: %s", action)
-	}
+
 	var (
 		expandSignature bool
 		expandComment   bool
 		expandMethods   bool
 		expandExamples  bool
 	)
-	switch strings.TrimPrefix(action, "expand:") {
-	case "signature":
-		expandSignature = true
-	case "methods":
-		expandMethods = true
-	case "comment":
-		expandComment = true
-	case "examples":
-		expandExamples = true
+	if strings.HasPrefix(action, "expand:") {
+		switch strings.TrimPrefix(action, "expand:") {
+		case "signature":
+			expandSignature = true
+		case "methods":
+			expandMethods = true
+		case "comment":
+			expandComment = true
+		case "examples":
+			expandExamples = true
+		}
+	} else if !strings.HasPrefix(action, "collapse:") {
+		return common.RespondErrMessagef(e.Respond, "Unknown action: %s", action)
 	}
+
 	var query string
 	if len(values) > 1 {
 		query = values[1]

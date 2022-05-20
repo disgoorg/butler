@@ -47,20 +47,39 @@ func GetDocsEmbed(pkg doc.Package, query string, expandSignature bool, expandCom
 			embed, moreSignature, moreComment = EmbedFromFunc(pkg, f, expandSignature, expandComment, expandExamples)
 		}
 	}
+	if len(embed.Description) > 4096 {
+		embed.Description = embed.Description[:4095] + "…"
+	}
 
 	var options []discord.SelectMenuOption
 	if moreSignature {
 		options = append(options, discord.NewSelectMenuOption("expand signature", "expand:signature").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
+	if expandSignature {
+		options = append(options, discord.NewSelectMenuOption("collapse signature", "collapse:signature").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+	}
+
 	if moreMethods {
 		options = append(options, discord.NewSelectMenuOption("expand methods", "expand:methods").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
+	if expandMethods {
+		options = append(options, discord.NewSelectMenuOption("collapse methods", "collapse:methods").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+	}
+
 	if moreComment {
 		options = append(options, discord.NewSelectMenuOption("expand comment", "expand:comment").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
+	if expandComment {
+		options = append(options, discord.NewSelectMenuOption("collapse comment", "collapse:comment").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+	}
+
 	if moreExamples {
 		options = append(options, discord.NewSelectMenuOption("expand examples", "expand:examples").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
+	if expandExamples {
+		options = append(options, discord.NewSelectMenuOption("collapse examples", "collapse:examples").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+	}
+
 	options = append(options, discord.NewSelectMenuOption("delete", "delete").WithEmoji(discord.ComponentEmoji{Name: "❌"}))
 
 	return embed, discord.NewSelectMenu("docs_action", "action", options...)
@@ -120,9 +139,12 @@ func EmbedFromType(pkg doc.Package, t doc.Type, expandSignature bool, expandComm
 	if expandMethods {
 		methods := "```go\n"
 		for _, m := range t.Methods {
-			methods += m.Signature + "\n"
+			methods += m.Signature + "\n\n"
 		}
 		description += methods + "\n```"
+		if len(description) > 4096 {
+			description = description[:4082] + "…\n```"
+		}
 	}
 	return discord.Embed{
 		Title:       fmt.Sprintf(embedTitleFormat, pkg.URL, t.Name),
@@ -141,6 +163,8 @@ func FormatDescription(signature string, comment doc.Comment, examples []doc.Exa
 	if !expandSignature && len(lines) > 6 {
 		moreSignature = true
 		signature = lines[0] + "\n…"
+	} else if len(signature) > 4096 {
+		signature = signature[:4082] + "…\n```"
 	}
 
 	markdown := comment.Markdown()
