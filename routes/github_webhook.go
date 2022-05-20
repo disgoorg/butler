@@ -54,7 +54,7 @@ func substr(input string, start int, length int) string {
 }
 
 func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
-	if e.GetAction() != "created" {
+	if e.GetAction() != "published" {
 		return nil
 	}
 
