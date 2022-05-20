@@ -88,7 +88,11 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 		return err
 	}
 
-	message := "__**Commits:**__\n"
+	message := e.GetRelease().GetBody()
+	if len(message) > 1024 {
+		message = substr(message, 0, 1024) + "…"
+	}
+	message += "\n\n__**Commits:**__\n"
 out:
 	for _, commit := range comparison.Commits {
 		commitLines := strings.Split(commit.GetCommit().GetMessage(), "\n")
