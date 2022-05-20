@@ -27,7 +27,7 @@ var TagCommand = butler.Command{
 		"": tagHandler,
 	},
 	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
-		"": autoCompleteListTagHandler,
+		"": autoCompleteListTagHandler(false),
 	},
 }
 

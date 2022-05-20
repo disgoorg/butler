@@ -8,6 +8,7 @@ import (
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 var ConfigCommand = butler.Command{
@@ -94,15 +95,55 @@ var ConfigCommand = butler.Command{
 					},
 				},
 			},
+			discord.ApplicationCommandOptionSubCommandGroup{
+				Name:        "contributor-repos",
+				Description: "Used to configure contributor repositories.",
+				Options: []discord.ApplicationCommandOptionSubCommand{
+					{
+						Name:        "add",
+						Description: "Used to add a contributor repositories.",
+						Options: []discord.ApplicationCommandOption{
+							discord.ApplicationCommandOptionString{
+								Name:        "name",
+								Description: "The name of the contributor repository.",
+								Required:    true,
+							},
+							discord.ApplicationCommandOptionRole{
+								Name:        "role",
+								Description: "The role to assign if a user is a contributor.",
+								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "remove",
+						Description: "Used to remove a contributor repositories.",
+						Options: []discord.ApplicationCommandOption{
+							discord.ApplicationCommandOptionString{
+								Name:        "name",
+								Description: "The contributor repository you want to remove.",
+								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "list",
+						Description: "Used to list all contributor repositories.",
+					},
+				},
+			},
 		},
 	},
 	CommandHandlers: map[string]butler.HandleFunc{
-		"aliases/add":     handleAliasesAdd,
-		"aliases/remove":  handleAliasesRemove,
-		"aliases/list":    handleAliasesList,
-		"releases/add":    handleReleasesAdd,
-		"releases/remove": handleReleasesRemove,
-		"releases/list":   handleReleasesList,
+		"aliases/add":              handleAliasesAdd,
+		"aliases/remove":           handleAliasesRemove,
+		"aliases/list":             handleAliasesList,
+		"releases/add":             handleReleasesAdd,
+		"releases/remove":          handleReleasesRemove,
+		"releases/list":            handleReleasesList,
+		"contributor-repos/add":    handleContributorReposAdd,
+		"contributor-repos/remove": handleContributorReposRemove,
+		"contributor-repos/list":   handleContributorReposList,
 	},
 }
 
@@ -190,4 +231,43 @@ func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractio
 		message += fmt.Sprintf("•`%s`\n", name)
 	}
 	return common.Respondf(e.Respond, "Releases:\n%s", message)
+}
+
+func handleContributorReposAdd(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+	data := e.SlashCommandInteractionData()
+	name := data.String("name")
+	roleID := data.Snowflake("role")
+
+	if b.Config.ContributorRepos == nil {
+		b.Config.ContributorRepos = map[string]snowflake.ID{}
+	}
+
+	b.Config.ContributorRepos[name] = roleID
+	if err := butler.SaveConfig(b.Config); err != nil {
+		return common.RespondErr(e.Respond, err)
+	}
+	return common.Respondf(e.Respond, "Added contributor repository `%s`.", name)
+}
+
+func handleContributorReposRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+	data := e.SlashCommandInteractionData()
+	name := data.String("name")
+
+	if _, ok := b.Config.ContributorRepos[name]; !ok {
+		return common.RespondErrMessagef(e.Respond, "contributor repository `%s` does not exist", name)
+	}
+
+	delete(b.Config.ContributorRepos, name)
+	if err := butler.SaveConfig(b.Config); err != nil {
+		return common.RespondErr(e.Respond, err)
+	}
+	return common.Respondf(e.Respond, "Removed contributor repository `%s`.", name)
+}
+
+func handleContributorReposList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+	var message string
+	for name, roleID := range b.Config.ContributorRepos {
+		message += fmt.Sprintf("•`%s` -> %s\n", name, discord.RoleMention(roleID))
+	}
+	return common.Respondf(e.Respond, "Repositories:\n%s", message)
 }
