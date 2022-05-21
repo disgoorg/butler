@@ -5,12 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/webhook"
 	"github.com/google/go-github/v44/github"
+)
+
+var (
+	markdownHeaderRegex            = regexp.MustCompile(`[ \t]*#+[ \t]+(.+)`)
+	markdownBulletRegex            = regexp.MustCompile(`([ \t]*)[*|-][ \t]+(.+)`)
+	markdownCheckBoxCheckedRegex   = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[x][ \t]+(.+)`)
+	markdownCheckBoxUncheckedRegex = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[ ][ \t]+(.+)`)
 )
 
 func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
@@ -37,20 +45,6 @@ func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
 			return
 		}
 	}
-}
-
-func substr(input string, start int, length int) string {
-	asRunes := []rune(input)
-
-	if start >= len(asRunes) {
-		return ""
-	}
-
-	if start+length > len(asRunes) {
-		length = len(asRunes) - start
-	}
-
-	return string(asRunes[start : start+length])
 }
 
 func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
@@ -88,7 +82,7 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 		return err
 	}
 
-	message := e.GetRelease().GetBody()
+	message := parseMarkdown(e.GetRelease().GetBody())
 	if len(message) > 1024 {
 		message = substr(message, 0, 1024) + "…"
 	}
@@ -127,4 +121,26 @@ out:
 		Build(),
 	)
 	return err
+}
+
+func substr(input string, start int, length int) string {
+	asRunes := []rune(input)
+
+	if start >= len(asRunes) {
+		return ""
+	}
+
+	if start+length > len(asRunes) {
+		length = len(asRunes) - start
+	}
+
+	return string(asRunes[start : start+length])
+}
+
+func parseMarkdown(text string) string {
+	text = markdownCheckBoxCheckedRegex.ReplaceAllString(text, "$1:ballot_box_with_check: $2")
+	text = markdownCheckBoxUncheckedRegex.ReplaceAllString(text, "$1:white_square_button: $2")
+	text = markdownHeaderRegex.ReplaceAllString(text, "*$1*")
+	text = markdownBulletRegex.ReplaceAllString(text, "$1• $2")
+	return text
 }
