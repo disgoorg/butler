@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	markdownHeaderRegex            = regexp.MustCompile(`[ \t]*#+[ \t]+(.+)`)
-	markdownBulletRegex            = regexp.MustCompile(`([ \t]*)[*|-][ \t]+(.+)`)
-	markdownCheckBoxCheckedRegex   = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[x][ \t]+(.+)`)
-	markdownCheckBoxUncheckedRegex = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[ ][ \t]+(.+)`)
+	markdownHeaderRegex            = regexp.MustCompile(`[ \t]*#+[ \t]+([^\r\n]+)`)
+	markdownBulletRegex            = regexp.MustCompile(`([ \t]*)[*|-][ \t]+([^\r\n]+)`)
+	markdownCheckBoxCheckedRegex   = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[x][ \t]+([^\r\n]+)`)
+	markdownCheckBoxUncheckedRegex = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[ ][ \t]+([^\r\n]+)`)
 )
 
 func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
