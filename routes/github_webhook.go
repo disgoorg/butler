@@ -140,7 +140,7 @@ func substr(input string, start int, length int) string {
 func parseMarkdown(text string) string {
 	text = markdownCheckBoxCheckedRegex.ReplaceAllString(text, "$1:ballot_box_with_check: $2")
 	text = markdownCheckBoxUncheckedRegex.ReplaceAllString(text, "$1:white_square_button: $2")
-	text = markdownHeaderRegex.ReplaceAllString(text, "*$1*")
+	text = markdownHeaderRegex.ReplaceAllString(text, "**$1**")
 	text = markdownBulletRegex.ReplaceAllString(text, "$1• $2")
 	return text
 }
