@@ -19,6 +19,9 @@ var (
 	markdownBulletRegex            = regexp.MustCompile(`([ \t]*)[*|-][ \t]+([^\r\n]+)`)
 	markdownCheckBoxCheckedRegex   = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[x][ \t]+([^\r\n]+)`)
 	markdownCheckBoxUncheckedRegex = regexp.MustCompile(`([ \t]*)[*|-][ \t]{0,4}\[ ][ \t]+([^\r\n]+)`)
+	prURLRegex                     = regexp.MustCompile(`https?://github\.com/(\w+/\w+)/pull/(\d+)`)
+	commitURLRegex                 = regexp.MustCompile(`https?://github\.com/\w+/\w+/commit/([a-f\d]{7})[a-f\d]+`)
+	mentionRegex                   = regexp.MustCompile(`@(\w+)`)
 )
 
 func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
@@ -146,5 +149,8 @@ func parseMarkdown(text string) string {
 	text = markdownCheckBoxUncheckedRegex.ReplaceAllString(text, "$1:white_square_button: $2")
 	text = markdownHeaderRegex.ReplaceAllString(text, "**$1**")
 	text = markdownBulletRegex.ReplaceAllString(text, "$1• $2")
+	text = prURLRegex.ReplaceAllString(text, "[$1#$2]($0)")
+	text = commitURLRegex.ReplaceAllString(text, "[`$1`]($0)")
+	text = mentionRegex.ReplaceAllString(text, "[@$1](https://github.com/$1)")
 	return text
 }
