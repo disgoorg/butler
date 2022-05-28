@@ -84,7 +84,11 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 
 	message := parseMarkdown(e.GetRelease().GetBody())
 	if len(message) > 1024 {
-		message = substr(message, 0, 1024) + "…"
+		message = substr(message, 0, 1024)
+		if index := strings.LastIndex(message, "\n"); index != -1 {
+			message = message[:index]
+		}
+		message += "\n…"
 	}
 	message += "\n\n__**Commits:**__\n"
 out:
