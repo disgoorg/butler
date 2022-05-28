@@ -4,16 +4,16 @@ ARG VERSION=dev
 
 WORKDIR /tmp/app
 
+COPY go.mod go.sum ./
+
+RUN go mod download
+
 COPY . .
 
-RUN go mod download && \
-    go mod verify && \
-    go build -ldflags="-X 'main.version=${VERSION}'" -o disgo-butler cmd/main.go
+RUN CGO_ENABLED=0 go build -ldflags="-X 'main.version=${VERSION}'-w -s" -o disgo-butler cmd/main.go
 
 FROM alpine
 
-WORKDIR /app
+COPY --from=build /tmp/app/disgo-butler /bin/disgo-butler
 
-COPY --from=build /tmp/app/disgo-butler /app/disgo-butler
-
-ENTRYPOINT ["./disgo-butler"]
+ENTRYPOINT ["/bin/disgo-butler"]
