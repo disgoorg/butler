@@ -17,7 +17,7 @@ var templateFS embed.FS
 
 func HandleLogin(b *butler.Butler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, b.OAuth2.GenerateAuthorizationURL(b.Config.BaseURL+"/github", discord.PermissionsNone, 0, false, discord.ApplicationScopeGuildsMembersRead, discord.ApplicationScopeConnections), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, b.OAuth2.GenerateAuthorizationURL(b.Config.BaseURL+"/github", discord.PermissionsNone, 0, false, discord.OAuth2ScopeGuildsMembersRead, discord.OAuth2ScopeConnections), http.StatusTemporaryRedirect)
 	}
 }
 

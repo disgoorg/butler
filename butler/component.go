@@ -13,7 +13,7 @@ func (b *Butler) SetupComponents(components ...Component) {
 	}
 }
 
-func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
+func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionCreate) {
 	data := strings.Split(e.Data.CustomID().String(), ":")
 	action := data[0]
 	if len(data) > 1 {
@@ -29,7 +29,7 @@ func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionEvent) {
 }
 
 type (
-	ComponentHandlerFunc func(b *Butler, data []string, e *events.ComponentInteractionEvent) error
+	ComponentHandlerFunc func(b *Butler, data []string, e *events.ComponentInteractionCreate) error
 	Component            struct {
 		Action  string
 		Handler ComponentHandlerFunc

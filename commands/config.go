@@ -147,7 +147,7 @@ var ConfigCommand = butler.Command{
 	},
 }
 
-func handleAliasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleAliasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	module := data.String("module")
 	alias := data.String("alias")
@@ -161,7 +161,7 @@ func handleAliasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionE
 	return common.Respondf(e.Respond, "Added alias `%s` for module `%s`.", alias, module)
 }
 
-func handleAliasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleAliasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	alias := data.String("alias")
 
@@ -176,7 +176,7 @@ func handleAliasesRemove(b *butler.Butler, e *events.ApplicationCommandInteracti
 	return common.Respondf(e.Respond, "Removed alias `%s`.", alias)
 }
 
-func handleAliasesList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleAliasesList(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	var message string
 	for alias, module := range b.Config.Docs.Aliases {
 		message += fmt.Sprintf("•`%s` -> `%s`\n", alias, module)
@@ -184,7 +184,7 @@ func handleAliasesList(b *butler.Butler, e *events.ApplicationCommandInteraction
 	return common.Respondf(e.Respond, "Aliases:\n%s", message)
 }
 
-func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := data.String("name")
 	channelID := data.Snowflake("channel")
@@ -210,7 +210,7 @@ func handleReleasesAdd(b *butler.Butler, e *events.ApplicationCommandInteraction
 	return common.Respondf(e.Respond, "Added release announcement for `%s`.", name)
 }
 
-func handleReleasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleReleasesRemove(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := data.String("name")
 
@@ -225,7 +225,7 @@ func handleReleasesRemove(b *butler.Butler, e *events.ApplicationCommandInteract
 	return common.Respondf(e.Respond, "Removed release announcement for `%s`.", name)
 }
 
-func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	var message string
 	for name := range b.Config.GithubReleases {
 		message += fmt.Sprintf("•`%s`\n", name)
@@ -233,7 +233,7 @@ func handleReleasesList(b *butler.Butler, e *events.ApplicationCommandInteractio
 	return common.Respondf(e.Respond, "Releases:\n%s", message)
 }
 
-func handleContributorReposAdd(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleContributorReposAdd(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := data.String("name")
 	roleID := data.Snowflake("role")
@@ -249,7 +249,7 @@ func handleContributorReposAdd(b *butler.Butler, e *events.ApplicationCommandInt
 	return common.Respondf(e.Respond, "Added contributor repository `%s`.", name)
 }
 
-func handleContributorReposRemove(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleContributorReposRemove(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := data.String("name")
 
@@ -264,7 +264,7 @@ func handleContributorReposRemove(b *butler.Butler, e *events.ApplicationCommand
 	return common.Respondf(e.Respond, "Removed contributor repository `%s`.", name)
 }
 
-func handleContributorReposList(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleContributorReposList(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	var message string
 	for name, roleID := range b.Config.ContributorRepos {
 		message += fmt.Sprintf("•`%s` -> %s\n", name, discord.RoleMention(roleID))

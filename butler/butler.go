@@ -79,11 +79,10 @@ func (b *Butler) SetupBot() {
 		bot.WithEventListenerFunc(b.OnComponentInteraction),
 		bot.WithEventListenerFunc(b.OnAutocompleteInteraction),
 		bot.WithEventListeners(b.Paginator),
-		bot.WithHTTPServerConfigOpts(
+		bot.WithHTTPServerConfigOpts(b.Config.Interactions.PublicKey,
 			httpserver.WithServeMux(b.Mux),
 			httpserver.WithAddress(b.Config.Interactions.Address),
 			httpserver.WithURL(b.Config.Interactions.URL),
-			httpserver.WithPublicKey(b.Config.Interactions.PublicKey),
 		),
 		bot.WithLogger(b.Logger),
 	); err != nil {
@@ -124,7 +123,7 @@ func (b *Butler) StartAndBlock() {
 	b.Logger.Info("Shutting down...")
 }
 
-func (b *Butler) OnReady(_ *events.ReadyEvent) {
+func (b *Butler) OnReady(_ *events.Ready) {
 	b.Logger.Infof("Butler ready")
 	if err := b.Client.SetPresence(context.TODO(), discord.GatewayMessageDataPresenceUpdate{
 		Activities: []discord.Activity{

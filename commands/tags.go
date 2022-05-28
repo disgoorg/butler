@@ -98,7 +98,7 @@ var TagsCommand = butler.Command{
 	},
 }
 
-func createTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func createTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := formatTagName(data.String("name"))
 
@@ -114,7 +114,7 @@ func createTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionE
 	return common.Respond(e.Respond, "Tag created!")
 }
 
-func editTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func editTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := formatTagName(data.String("name"))
 
@@ -134,7 +134,7 @@ func editTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEve
 	return common.Respond(e.Respond, "Tag edited.")
 }
 
-func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := formatTagName(data.String("name"))
 
@@ -154,7 +154,7 @@ func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionE
 	return common.Respond(e.Respond, "Tag deleted.")
 }
 
-func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 	name := formatTagName(data.String("name"))
 	tag, err := b.DB.Get(*e.GuildID(), name)
@@ -187,7 +187,7 @@ func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEve
 	})
 }
 
-func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	tags, err := b.DB.GetAll(*e.GuildID())
 	if err != nil {
 		return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
@@ -220,8 +220,8 @@ func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEve
 	})
 }
 
-func autoCompleteListTagHandler(filterTags bool) func(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
-	return func(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
+func autoCompleteListTagHandler(filterTags bool) func(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
+	return func(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
 		name := formatTagName(e.Data.String("name"))
 
 		var (

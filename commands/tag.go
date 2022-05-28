@@ -31,7 +31,7 @@ var TagCommand = butler.Command{
 	},
 }
 
-func tagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func tagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
 	if err == sql.ErrNoRows {
 		return common.RespondErrMessage(e.Respond, "Tag not found")

@@ -15,7 +15,7 @@ var DocsActionComponent = butler.Component{
 	Handler: handleDocsAction,
 }
 
-func handleDocsAction(b *butler.Butler, _ []string, e *events.ComponentInteractionEvent) error {
+func handleDocsAction(b *butler.Butler, _ []string, e *events.ComponentInteractionCreate) error {
 	action := e.SelectMenuInteractionData().Values[0]
 	if action == "delete" {
 		if e.Message.Interaction.User.ID != e.User().ID && e.Member().Permissions.Missing(discord.PermissionManageMessages) {

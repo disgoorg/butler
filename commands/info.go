@@ -18,7 +18,7 @@ var InfoCommand = butler.Command{
 	},
 }
 
-func handleInfo(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleInfo(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	user, _ := b.Client.Caches().GetSelfUser()
 	return e.CreateMessage(discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().

@@ -20,7 +20,7 @@ var PingCommand = butler.Command{
 	},
 }
 
-func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	var gatewayPing string
 	if e.Client().HasGateway() {
 		gatewayPing = e.Client().Gateway().Latency().String()

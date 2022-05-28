@@ -26,7 +26,7 @@ func (b *Butler) SetupCommands(shouldSyncCommands bool, commands ...Command) {
 	}
 }
 
-func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInteractionEvent) {
+func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInteractionCreate) {
 	if command, ok := b.Commands[e.Data.CommandName()]; ok {
 		var path string
 		if data, ok := e.Data.(discord.SlashCommandInteractionData); ok {
@@ -49,7 +49,7 @@ func (b *Butler) OnApplicationCommandInteraction(e *events.ApplicationCommandInt
 	b.Logger.Warnf("No handler for command with name %s found", e.Data.CommandName())
 }
 
-func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEvent) {
+func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionCreate) {
 	if command, ok := b.Commands[e.Data.CommandName]; ok {
 		var path string
 		if e.Data.SubCommandGroupName != nil {
@@ -72,8 +72,8 @@ func (b *Butler) OnAutocompleteInteraction(e *events.AutocompleteInteractionEven
 }
 
 type (
-	HandleFunc             func(b *Butler, e *events.ApplicationCommandInteractionEvent) error
-	AutocompleteHandleFunc func(b *Butler, e *events.AutocompleteInteractionEvent) error
+	HandleFunc             func(b *Butler, e *events.ApplicationCommandInteractionCreate) error
+	AutocompleteHandleFunc func(b *Butler, e *events.AutocompleteInteractionCreate) error
 	Command                struct {
 		Create               discord.ApplicationCommandCreate
 		CommandHandlers      map[string]HandleFunc

@@ -41,7 +41,7 @@ var DocsCommand = butler.Command{
 	},
 }
 
-func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) error {
+func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
 	data := e.SlashCommandInteractionData()
 
 	pkg, err := b.DocClient.Search(context.Background(), data.String("module"))
@@ -58,7 +58,7 @@ func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionEvent) 
 	)
 }
 
-func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent) error {
+func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
 	moduleOption, moduleOptionOk := e.Data.StringOption("module")
 	if moduleOptionOk && moduleOption.Focused() {
 		return handleModuleAutocomplete(b, e, moduleOption.Value)
@@ -69,7 +69,7 @@ func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionE
 	return e.Result(nil)
 }
 
-func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent, module string) error {
+func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string) error {
 	choices := make([]discord.AutocompleteChoiceString, 0, 25)
 	if module == "" {
 		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
@@ -101,7 +101,7 @@ func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractio
 	return e.Result(replaceAliases(b, choices))
 }
 
-func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionEvent, module string, query string) error {
+func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string, query string) error {
 	pkg, err := b.DocClient.Search(context.Background(), module)
 	if err == doc.InvalidStatusError(404) {
 		return e.Result([]discord.AutocompleteChoice{

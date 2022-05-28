@@ -61,7 +61,7 @@ func processReleaseEvent(b *butler.Butler, e *github.ReleaseEvent) error {
 
 	webhookClient, ok := b.Webhooks[fullName]
 	if !ok {
-		webhookClient = webhook.NewClient(cfg.WebhookID, cfg.WebhookToken)
+		webhookClient = webhook.New(cfg.WebhookID, cfg.WebhookToken)
 		b.Webhooks[fullName] = webhookClient
 	}
 
