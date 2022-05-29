@@ -9,6 +9,7 @@ import (
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo-butler/db"
+	"github.com/disgoorg/disgo-butler/mod_mail"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
@@ -46,6 +47,7 @@ type Butler struct {
 	Commands     map[string]Command
 	Components   map[string]Component
 	DocClient    *doc.CachedSearcher
+	ModMail      *mod_mail.ModMail
 	DB           db.DB
 	Config       Config
 	Webhooks     map[string]webhook.Client
@@ -58,10 +60,11 @@ func (b *Butler) SetupRoutes(routes http.Handler) {
 }
 
 func (b *Butler) SetupBot() {
+	b.ModMail = mod_mail.New(b.Config.ModMail)
 	var err error
 	if b.Client, err = disgo.New(b.Config.Token,
 		bot.WithGatewayConfigOpts(
-			gateway.WithGatewayIntents(discord.GatewayIntentsAll),
+			gateway.WithGatewayIntents(discord.GatewayIntentGuildMessages|discord.GatewayIntentDirectMessages|discord.GatewayIntentGuildMessageTyping|discord.GatewayIntentDirectMessageTyping|discord.GatewayIntentMessageContent),
 			gateway.WithCompress(true),
 			gateway.WithPresence(discord.GatewayMessageDataPresenceUpdate{
 				Activities: []discord.Activity{
@@ -79,6 +82,7 @@ func (b *Butler) SetupBot() {
 		bot.WithEventListenerFunc(b.OnComponentInteraction),
 		bot.WithEventListenerFunc(b.OnAutocompleteInteraction),
 		bot.WithEventListeners(b.Paginator),
+		bot.WithEventListeners(b.ModMail),
 		bot.WithHTTPServerConfigOpts(b.Config.Interactions.PublicKey,
 			httpserver.WithServeMux(b.Mux),
 			httpserver.WithAddress(b.Config.Interactions.Address),
@@ -107,20 +111,27 @@ func (b *Butler) SetupDB(shouldSyncDBTables bool) {
 }
 
 func (b *Butler) StartAndBlock() {
-	if b.Config.DevMode {
-		if err := b.Client.ConnectGateway(context.TODO()); err != nil {
-			b.Logger.Errorf("Failed to connect to gateway: %s", err)
-		}
+	if err := b.Client.ConnectGateway(context.TODO()); err != nil {
+		b.Logger.Errorf("Failed to connect to gateway: %s", err)
 	}
 	if err := b.Client.StartHTTPServer(); err != nil {
 		b.Logger.Errorf("Failed to start http server: %s", err)
 	}
 
+	defer func() {
+		b.Logger.Info("Shutting down...")
+		b.Client.Close(context.TODO())
+		b.DB.Close()
+		b.Config.ModMail.Threads = b.ModMail.Close()
+		if err := SaveConfig(b.Config); err != nil {
+			b.Logger.Errorf("Failed to save config: %s", err)
+		}
+	}()
+
 	b.Logger.Info("Client is running. Press CTRL-C to exit.")
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-s
-	b.Logger.Info("Shutting down...")
 }
 
 func (b *Butler) OnReady(_ *events.Ready) {
@@ -128,7 +139,7 @@ func (b *Butler) OnReady(_ *events.Ready) {
 	if err := b.Client.SetPresence(context.TODO(), discord.GatewayMessageDataPresenceUpdate{
 		Activities: []discord.Activity{
 			{
-				Name: "you",
+				Name: "you in DMs",
 				Type: discord.ActivityTypeListening,
 			},
 		},

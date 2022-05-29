@@ -41,8 +41,13 @@ func SetupDatabase(shouldSyncDBTables bool, config Config) (DB, error) {
 
 type DB interface {
 	TagsDB
+	Close()
 }
 
 type sqlDB struct {
 	db *bun.DB
+}
+
+func (s *sqlDB) Close() {
+	s.db.Close()
 }

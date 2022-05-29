@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/disgoorg/disgo-butler/db"
+	"github.com/disgoorg/disgo-butler/mod_mail"
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
 )
@@ -52,43 +53,37 @@ func SaveConfig(config Config) error {
 	return err
 }
 
-type Config struct {
-	DevMode  bool         `json:"dev_mode"`
-	GuildID  snowflake.ID `json:"guild_id"`
-	LogLevel log.Level    `json:"log_level"`
-	Token    string       `json:"token"`
-	Secret   string       `json:"secret"`
-	BaseURL  string       `json:"base_url"`
+type (
+	Config struct {
+		DevMode  bool         `json:"dev_mode"`
+		GuildID  snowflake.ID `json:"guild_id"`
+		LogLevel log.Level    `json:"log_level"`
+		Token    string       `json:"token"`
+		Secret   string       `json:"secret"`
+		BaseURL  string       `json:"base_url"`
 
-	Docs                DocsConfig                     `json:"docs"`
-	Database            db.Config                      `json:"database"`
-	GithubWebhookSecret string                         `json:"github_webhook_secret"`
-	GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`
-	Interactions        InteractionsConfig             `json:"interactions"`
-	ContributorRepos    map[string]snowflake.ID        `json:"contributor_repos"`
-}
+		Docs                DocsConfig                     `json:"docs"`
+		Database            db.Config                      `json:"database"`
+		GithubWebhookSecret string                         `json:"github_webhook_secret"`
+		GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`
+		Interactions        InteractionsConfig             `json:"interactions"`
+		ContributorRepos    map[string]snowflake.ID        `json:"contributor_repos"`
+		ModMail             mod_mail.Config                `json:"mod_mail"`
+	}
 
-type DocsConfig struct {
-	Aliases map[string]string `json:"aliases"`
-}
+	DocsConfig struct {
+		Aliases map[string]string `json:"aliases"`
+	}
 
-type DatabaseConfig struct {
-	Address  string `json:"address"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-	Insecure bool   `json:"insecure"`
-	Verbose  bool   `json:"verbose"`
-}
+	GithubReleaseConfig struct {
+		WebhookID    snowflake.ID `json:"webhook_id"`
+		WebhookToken string       `json:"webhook_token"`
+		PingRole     snowflake.ID `json:"ping_role"`
+	}
 
-type GithubReleaseConfig struct {
-	WebhookID    snowflake.ID `json:"webhook_id"`
-	WebhookToken string       `json:"webhook_token"`
-	PingRole     snowflake.ID `json:"ping_role"`
-}
-
-type InteractionsConfig struct {
-	URL       string `json:"url"`
-	Address   string `json:"address"`
-	PublicKey string `json:"public_key"`
-}
+	InteractionsConfig struct {
+		URL       string `json:"url"`
+		Address   string `json:"address"`
+		PublicKey string `json:"public_key"`
+	}
+)
