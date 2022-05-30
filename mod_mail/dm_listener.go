@@ -41,6 +41,17 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 			}, func(e *events.ComponentInteractionCreate) {
 				if e.Data.CustomID() == "no" {
 					accepted = false
+					if err := e.UpdateMessage(discord.MessageUpdate{
+						Embeds: &[]discord.Embed{
+							{
+								Description: "No Ticket created.",
+								Color:       0xFF0000,
+							},
+						},
+						Components: &[]discord.ContainerComponent{},
+					}); err != nil {
+						event.Client().Logger().Error("failed to update new ticket message: ", err)
+					}
 					return
 				}
 
@@ -75,7 +86,7 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 					},
 					Components: &[]discord.ContainerComponent{},
 				}); err != nil {
-
+					event.Client().Logger().Error("failed to update new ticket message: ", err)
 				}
 			}, func() {
 				accepted = false
