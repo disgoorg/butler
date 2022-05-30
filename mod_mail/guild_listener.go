@@ -10,9 +10,9 @@ func (m *ModMail) guildMessageCreateListener(event *events.GuildMessageCreate) {
 		return
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	dmID, ok := m.threadDMs[event.ChannelID]
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
+	dmID, ok := m.ThreadDMs[event.ChannelID]
 	if !ok {
 		return
 	}
@@ -31,8 +31,8 @@ func (m *ModMail) guildMessageCreateListener(event *events.GuildMessageCreate) {
 }
 
 func (m *ModMail) guildMessageUpdateListener(event *events.GuildMessageUpdate) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	dmMessageID, ok := m.dmMessageIDs[event.Message.ID]
 	if !ok {
@@ -43,7 +43,7 @@ func (m *ModMail) guildMessageUpdateListener(event *events.GuildMessageUpdate) {
 		Embeds: &embeds,
 		Files:  filesFromAttachments(event.Client(), event.Message.Attachments),
 	}
-	dmChannelID := m.threadDMs[event.ChannelID]
+	dmChannelID := m.ThreadDMs[event.ChannelID]
 	_, err := event.Client().Rest().UpdateMessage(dmChannelID, dmMessageID, messageUpdate)
 	if err != nil {
 		event.Client().Logger().Error("failed to update dm message: ", err)
@@ -53,15 +53,15 @@ func (m *ModMail) guildMessageUpdateListener(event *events.GuildMessageUpdate) {
 }
 
 func (m *ModMail) guildMessageDeleteListener(event *events.GuildMessageDelete) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	dmMessageID, ok := m.dmMessageIDs[event.MessageID]
 	if !ok {
 		return
 	}
 	delete(m.threadMessageIDs, event.Message.ID)
-	dmChannelID := m.threadDMs[event.ChannelID]
+	dmChannelID := m.ThreadDMs[event.ChannelID]
 	if err := event.Client().Rest().DeleteMessage(dmChannelID, dmMessageID); err != nil {
 		event.Client().Logger().Error("failed to delete dm message: ", err)
 		return
@@ -70,10 +70,10 @@ func (m *ModMail) guildMessageDeleteListener(event *events.GuildMessageDelete) {
 }
 
 func (m *ModMail) guildMemberTypingStartListener(event *events.GuildMemberTypingStart) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
-	dmChannelID, ok := m.threadDMs[event.ChannelID]
+	dmChannelID, ok := m.ThreadDMs[event.ChannelID]
 	if !ok {
 		return
 	}

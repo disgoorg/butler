@@ -25,7 +25,7 @@ func (b *Butler) OnComponentInteraction(e *events.ComponentInteractionCreate) {
 		}
 		return
 	}
-	b.Logger.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
+	//b.Logger.Warnf("No handler for component with CustomID %s found", e.Data.CustomID())
 }
 
 type (

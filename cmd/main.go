@@ -53,6 +53,7 @@ func main() {
 		commands.TagCommand,
 		commands.TagsCommand,
 		commands.ConfigCommand,
+		commands.TicketCommand(b.ModMail),
 	)
 	b.SetupComponents(
 		components.DocsActionComponent,

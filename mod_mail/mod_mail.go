@@ -12,17 +12,17 @@ import (
 
 func New(config Config) *ModMail {
 	modMail := &ModMail{
-
+		roleID:           config.RoleID,
 		channelID:        config.ChannelID,
 		webhookClient:    webhook.New(config.WebhookID, config.WebhookToken),
-		dmThreads:        map[snowflake.ID]snowflake.ID{},
-		threadDMs:        map[snowflake.ID]snowflake.ID{},
+		DMThreads:        map[snowflake.ID]snowflake.ID{},
+		ThreadDMs:        map[snowflake.ID]snowflake.ID{},
 		dmMessageIDs:     map[snowflake.ID]snowflake.ID{},
 		threadMessageIDs: map[snowflake.ID]snowflake.ID{},
 	}
 	for _, thread := range config.Threads {
-		modMail.dmThreads[thread.ChannelID] = thread.ThreadID
-		modMail.threadDMs[thread.ThreadID] = thread.ChannelID
+		modMail.DMThreads[thread.ChannelID] = thread.ThreadID
+		modMail.ThreadDMs[thread.ThreadID] = thread.ChannelID
 	}
 
 	modMail.ListenerAdapter = events.ListenerAdapter{
@@ -44,15 +44,16 @@ var _ bot.EventListener = (*ModMail)(nil)
 
 type ModMail struct {
 	events.ListenerAdapter
+	roleID        snowflake.ID
 	channelID     snowflake.ID
 	webhookClient webhook.Client
 
-	mu sync.Mutex
+	Mu sync.Mutex
 
 	// DMChannelID -> ThreadID
-	dmThreads map[snowflake.ID]snowflake.ID
+	DMThreads map[snowflake.ID]snowflake.ID
 	// ThreadID -> DMChannelID
-	threadDMs map[snowflake.ID]snowflake.ID
+	ThreadDMs map[snowflake.ID]snowflake.ID
 
 	// DMMessageID -> ThreadMessageID
 	dmMessageIDs map[snowflake.ID]snowflake.ID
@@ -61,12 +62,12 @@ type ModMail struct {
 }
 
 func (m *ModMail) Close() []Thread {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
-	threads := make([]Thread, len(m.dmThreads))
+	threads := make([]Thread, len(m.DMThreads))
 	var i int
-	for dmID, threadID := range m.dmThreads {
+	for dmID, threadID := range m.DMThreads {
 		threads[i] = Thread{
 			ChannelID: dmID,
 			ThreadID:  threadID,
@@ -116,6 +117,7 @@ func filesFromAttachments(client bot.Client, attachments []discord.Attachment) [
 }
 
 type Config struct {
+	RoleID       snowflake.ID `json:"role_id"`
 	ChannelID    snowflake.ID `json:"channel_id"`
 	WebhookID    snowflake.ID `json:"webhook_id"`
 	WebhookToken string       `json:"webhook_token"`

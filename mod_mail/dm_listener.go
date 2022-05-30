@@ -1,6 +1,11 @@
 package mod_mail
 
 import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 )
@@ -10,43 +15,108 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 		return
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	go func() {
+		accepted := true
+		m.Mu.Lock()
+		threadID, ok := m.DMThreads[event.ChannelID]
+		m.Mu.Unlock()
+		if !ok {
+			newTicketMessage, err := event.Client().Rest().CreateMessage(event.ChannelID, discord.NewMessageCreateBuilder().
+				SetEmbeds(discord.NewEmbedBuilder().
+					SetDescription("Are you sure you want to open a ticket?").
+					Build(),
+				).
+				AddActionRow(discord.NewSuccessButton("Yes", "yes"), discord.NewDangerButton("No", "no")).
+				Build(),
+			)
+			if err != nil {
+				event.Client().Logger().Error("failed to send new ticket message: ", err)
+				return
+			}
 
-	threadID, ok := m.dmThreads[event.ChannelID]
-	if !ok {
-		thread, err := event.Client().Rest().CreateThread(m.channelID, discord.GuildPublicThreadCreate{
-			Name:                event.Message.Author.Tag(),
-			AutoArchiveDuration: discord.AutoArchiveDuration1h,
-		})
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+			bot.WaitForEvent(event.Client(), ctx, func(e *events.ComponentInteractionCreate) bool {
+				return e.ChannelID() == event.ChannelID && e.Data.Type() == discord.ComponentTypeButton
+			}, func(e *events.ComponentInteractionCreate) {
+				if e.Data.CustomID() == "no" {
+					accepted = false
+					return
+				}
+
+				thread, err := event.Client().Rest().CreateThread(m.channelID, discord.GuildPublicThreadCreate{
+					Name:                event.Message.Author.Tag(),
+					AutoArchiveDuration: discord.AutoArchiveDuration1h,
+				})
+				if err != nil {
+					event.Client().Logger().Error("failed to create new thread: ", err)
+					return
+				}
+
+				threadID = thread.ID()
+
+				if _, err := m.webhookClient.CreateMessageInThread(discord.WebhookMessageCreate{
+					Content:         fmt.Sprintf("%s\nNew ticket opened by %s(`%s`)", discord.RoleMention(m.roleID), event.Message.Author.Tag(), event.Message.Author.ID),
+					AllowedMentions: &discord.DefaultAllowedMentions,
+				}, threadID); err != nil {
+					event.Client().Logger().Error("failed to create new thread message: ", err)
+				}
+
+				m.Mu.Lock()
+				defer m.Mu.Unlock()
+				m.DMThreads[event.ChannelID] = threadID
+				m.ThreadDMs[threadID] = event.ChannelID
+				if err := e.UpdateMessage(discord.MessageUpdate{
+					Embeds: &[]discord.Embed{
+						{
+							Description: "New Ticket created.",
+							Color:       0x00FF00,
+						},
+					},
+					Components: &[]discord.ContainerComponent{},
+				}); err != nil {
+
+				}
+			}, func() {
+				accepted = false
+				if _, err := event.Client().Rest().UpdateMessage(event.ChannelID, newTicketMessage.ID, discord.MessageUpdate{
+					Embeds: &[]discord.Embed{
+						{
+							Description: "Ticket creation timed out.",
+							Color:       0xFF0000,
+						},
+					},
+					Components: &[]discord.ContainerComponent{},
+				}); err != nil {
+					event.Client().Logger().Error("failed to update new ticket message: ", err)
+				}
+			})
+			if !accepted {
+				return
+			}
+		}
+		webhookMessageCreate := discord.WebhookMessageCreate{
+			Content:   event.Message.Content,
+			Username:  event.Message.Author.Username,
+			AvatarURL: event.Message.Author.EffectiveAvatarURL(),
+			Embeds:    event.Message.Embeds,
+			Files:     filesFromAttachments(event.Client(), event.Message.Attachments),
+		}
+
+		message, err := m.webhookClient.CreateMessageInThread(webhookMessageCreate, threadID)
 		if err != nil {
-			event.Client().Logger().Error("failed to create new thread: ", err)
+			event.Client().Logger().Error("failed to create thread message: ", err)
 			return
 		}
-		threadID = thread.ID()
-		m.dmThreads[event.ChannelID] = thread.ID()
-		m.threadDMs[thread.ID()] = event.ChannelID
-	}
-	webhookMessageCreate := discord.WebhookMessageCreate{
-		Content:   event.Message.Content,
-		Username:  event.Message.Author.Username,
-		AvatarURL: event.Message.Author.EffectiveAvatarURL(),
-		Embeds:    event.Message.Embeds,
-		Files:     filesFromAttachments(event.Client(), event.Message.Attachments),
-	}
-
-	message, err := m.webhookClient.CreateMessageInThread(webhookMessageCreate, threadID)
-	if err != nil {
-		event.Client().Logger().Error("failed to create thread message: ", err)
-		return
-	}
-	m.threadMessageIDs[event.Message.ID] = message.ID
-
+		m.Mu.Lock()
+		defer m.Mu.Unlock()
+		m.threadMessageIDs[event.Message.ID] = message.ID
+	}()
 }
 
 func (m *ModMail) dmMessageUpdateListener(event *events.DMMessageUpdate) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	webhookMessageID, ok := m.threadMessageIDs[event.Message.ID]
 	if !ok {
@@ -57,7 +127,7 @@ func (m *ModMail) dmMessageUpdateListener(event *events.DMMessageUpdate) {
 		Embeds:  &event.Message.Embeds,
 		Files:   filesFromAttachments(event.Client(), event.Message.Attachments),
 	}
-	threadID := m.dmThreads[event.ChannelID]
+	threadID := m.DMThreads[event.ChannelID]
 	_, err := m.webhookClient.UpdateMessageInThread(webhookMessageID, webhookMessageUpdate, threadID)
 	if err != nil {
 		event.Client().Logger().Error("failed to update thread message: ", err)
@@ -67,8 +137,8 @@ func (m *ModMail) dmMessageUpdateListener(event *events.DMMessageUpdate) {
 }
 
 func (m *ModMail) dmMessageDeleteListener(event *events.DMMessageDelete) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	webhookMessageID, ok := m.threadMessageIDs[event.MessageID]
 	if !ok {
@@ -83,10 +153,10 @@ func (m *ModMail) dmMessageDeleteListener(event *events.DMMessageDelete) {
 }
 
 func (m *ModMail) dmUserTypingStartListener(event *events.DMUserTypingStart) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
-	threadID, ok := m.dmThreads[event.ChannelID]
+	threadID, ok := m.DMThreads[event.ChannelID]
 	if !ok {
 		return
 	}
