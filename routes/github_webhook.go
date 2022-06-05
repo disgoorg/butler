@@ -111,7 +111,7 @@ out:
 		}
 	}
 
-	_, err = webhookClient.CreateMessage(discord.NewWebhookMessageCreateBuilder().
+	msg, err := webhookClient.CreateMessage(discord.NewWebhookMessageCreateBuilder().
 		SetContent(discord.RoleMention(cfg.PingRole)).
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetAuthor(
@@ -127,6 +127,10 @@ out:
 		).
 		Build(),
 	)
+	if err != nil {
+		return err
+	}
+	_, err = b.Client.Rest().CrosspostMessage(msg.ChannelID, msg.ID)
 	return err
 }
 
