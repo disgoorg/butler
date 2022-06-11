@@ -102,7 +102,7 @@ out:
 			if i == 0 {
 				shortId = substr(commit.GetSHA(), 0, 7)
 			}
-			line := fmt.Sprintf("[`%s`](%s) %s\n", shortId, commit.GetURL(), commitLine)
+			line := fmt.Sprintf("[`%s`](%s) %s\n", shortId, commit.GetHTMLURL(), commitLine)
 			if len(message)+len(line) > 4068 {
 				message += "…"
 				break out
