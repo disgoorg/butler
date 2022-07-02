@@ -44,7 +44,7 @@ func handlePing(_ *butler.Butler, e *events.ApplicationCommandInteractionCreate)
 		}
 	}()
 
-	return e.Respond(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
+	return e.Respond(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(eb.Build()).
 		Build(),
 	)

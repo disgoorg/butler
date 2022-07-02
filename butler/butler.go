@@ -64,9 +64,9 @@ func (b *Butler) SetupBot() {
 	var err error
 	if b.Client, err = disgo.New(b.Config.Token,
 		bot.WithGatewayConfigOpts(
-			gateway.WithGatewayIntents(discord.GatewayIntentGuildMessages|discord.GatewayIntentDirectMessages|discord.GatewayIntentGuildMessageTyping|discord.GatewayIntentDirectMessageTyping|discord.GatewayIntentMessageContent),
+			gateway.WithIntents(gateway.IntentGuildMessages|gateway.IntentDirectMessages|gateway.IntentGuildMessageTyping|gateway.IntentDirectMessageTyping|gateway.IntentMessageContent),
 			gateway.WithCompress(true),
-			gateway.WithPresence(discord.GatewayMessageDataPresenceUpdate{
+			gateway.WithPresence(gateway.MessageDataPresenceUpdate{
 				Activities: []discord.Activity{
 					{
 						Name: "loading...",
@@ -136,7 +136,7 @@ func (b *Butler) StartAndBlock() {
 
 func (b *Butler) OnReady(_ *events.Ready) {
 	b.Logger.Infof("Butler ready")
-	if err := b.Client.SetPresence(context.TODO(), discord.GatewayMessageDataPresenceUpdate{
+	if err := b.Client.SetPresence(context.TODO(), gateway.MessageDataPresenceUpdate{
 		Activities: []discord.Activity{
 			{
 				Name: "you in DMs",

@@ -21,27 +21,27 @@ var TagsCommand = butler.Command{
 		Description: "let's you create/delete/edit tags",
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionSubCommand{
-				Name:        "create",
+				CommandName: "create",
 				Description: "let's you create a tag",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:        "name",
+						OptionName:  "name",
 						Description: "the name of the tag to create",
 						Required:    true,
 					},
 					discord.ApplicationCommandOptionString{
-						Name:        "content",
+						OptionName:  "content",
 						Description: "the content of the new tag",
 						Required:    true,
 					},
 				},
 			},
 			discord.ApplicationCommandOptionSubCommand{
-				Name:        "delete",
+				CommandName: "delete",
 				Description: "let's you delete a tag",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:         "name",
+						OptionName:   "name",
 						Description:  "the name of the tag to delete",
 						Required:     true,
 						Autocomplete: true,
@@ -49,28 +49,28 @@ var TagsCommand = butler.Command{
 				},
 			},
 			discord.ApplicationCommandOptionSubCommand{
-				Name:        "edit",
+				CommandName: "edit",
 				Description: "let's you edit a tag",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:         "name",
+						OptionName:   "name",
 						Description:  "the name of the tag to edit",
 						Required:     true,
 						Autocomplete: true,
 					},
 					discord.ApplicationCommandOptionString{
-						Name:        "content",
+						OptionName:  "content",
 						Description: "the new content of the new tag",
 						Required:    true,
 					},
 				},
 			},
 			discord.ApplicationCommandOptionSubCommand{
-				Name:        "info",
+				CommandName: "info",
 				Description: "lets you view a tag's info",
 				Options: []discord.ApplicationCommandOption{
 					discord.ApplicationCommandOptionString{
-						Name:         "name",
+						OptionName:   "name",
 						Description:  "the name of the tag to view",
 						Required:     true,
 						Autocomplete: true,
@@ -78,7 +78,7 @@ var TagsCommand = butler.Command{
 				},
 			},
 			discord.ApplicationCommandOptionSubCommand{
-				Name:        "list",
+				CommandName: "list",
 				Description: "lists all tags",
 			},
 		},

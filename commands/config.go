@@ -17,117 +17,117 @@ var ConfigCommand = butler.Command{
 		Description: "Used to configure aliases and release announcements.",
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionSubCommandGroup{
-				Name:        "aliases",
+				GroupName:   "aliases",
 				Description: "Used to configure module aliases.",
 				Options: []discord.ApplicationCommandOptionSubCommand{
 					{
-						Name:        "add",
+						CommandName: "add",
 						Description: "Used to add a module alias.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "module",
+								OptionName:  "module",
 								Description: "The module you want to add an alias for.",
 								Required:    true,
 							},
 							discord.ApplicationCommandOptionString{
-								Name:        "alias",
+								OptionName:  "alias",
 								Description: "The alias you want to add for the module.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "remove",
+						CommandName: "remove",
 						Description: "Used to remove a module alias.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "alias",
+								OptionName:  "alias",
 								Description: "The alias you want to add for the module.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "list",
+						CommandName: "list",
 						Description: "Used to list all module aliases.",
 					},
 				},
 			},
 			discord.ApplicationCommandOptionSubCommandGroup{
-				Name:        "releases",
+				GroupName:   "releases",
 				Description: "Used to configure release announcements.",
 				Options: []discord.ApplicationCommandOptionSubCommand{
 					{
-						Name:        "add",
+						CommandName: "add",
 						Description: "Used to add a release announcement.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "name",
+								OptionName:  "name",
 								Description: "The name of the release announcement.",
 								Required:    true,
 							},
 							discord.ApplicationCommandOptionChannel{
-								Name:        "channel",
+								OptionName:  "channel",
 								Description: "The channel to release the announcement in.",
 								Required:    true,
 							},
 							discord.ApplicationCommandOptionRole{
-								Name:        "ping-role",
+								OptionName:  "ping-role",
 								Description: "The role you want to ping when a new release is available.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "remove",
+						CommandName: "remove",
 						Description: "Used to remove a release announcement.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "name",
+								OptionName:  "name",
 								Description: "The release announcement you want to remove.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "list",
+						CommandName: "list",
 						Description: "Used to list all release announcements.",
 					},
 				},
 			},
 			discord.ApplicationCommandOptionSubCommandGroup{
-				Name:        "contributor-repos",
+				GroupName:   "contributor-repos",
 				Description: "Used to configure contributor repositories.",
 				Options: []discord.ApplicationCommandOptionSubCommand{
 					{
-						Name:        "add",
+						CommandName: "add",
 						Description: "Used to add a contributor repositories.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "name",
+								OptionName:  "name",
 								Description: "The name of the contributor repository.",
 								Required:    true,
 							},
 							discord.ApplicationCommandOptionRole{
-								Name:        "role",
+								OptionName:  "role",
 								Description: "The role to assign if a user is a contributor.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "remove",
+						CommandName: "remove",
 						Description: "Used to remove a contributor repositories.",
 						Options: []discord.ApplicationCommandOption{
 							discord.ApplicationCommandOptionString{
-								Name:        "name",
+								OptionName:  "name",
 								Description: "The contributor repository you want to remove.",
 								Required:    true,
 							},
 						},
 					},
 					{
-						Name:        "list",
+						CommandName: "list",
 						Description: "Used to list all contributor repositories.",
 					},
 				},

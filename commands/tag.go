@@ -16,7 +16,7 @@ var TagCommand = butler.Command{
 		Options: []discord.ApplicationCommandOption{
 
 			discord.ApplicationCommandOptionString{
-				Name:         "name",
+				OptionName:   "name",
 				Description:  "The name of the tag to display",
 				Required:     true,
 				Autocomplete: true,

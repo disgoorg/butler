@@ -20,13 +20,13 @@ var DocsCommand = butler.Command{
 		Description: "Provides info to the provided module, type, function, etc.",
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionString{
-				Name:         "module",
+				OptionName:   "module",
 				Description:  "The module to lookup. Example: github.com/disgoorg/disgo/discord",
 				Required:     true,
 				Autocomplete: true,
 			},
 			discord.ApplicationCommandOptionString{
-				Name:         "query",
+				OptionName:   "query",
 				Description:  "The lookup query. Example: MessageCreate",
 				Required:     true,
 				Autocomplete: true,

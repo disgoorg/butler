@@ -17,7 +17,7 @@ func RespondErr(respondFunc events.InteractionResponderFunc, err error) error {
 }
 
 func RespondErrMessage(respondFunc events.InteractionResponderFunc, message string) error {
-	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
+	return respondFunc(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescription(message).
 			SetColor(ColorError).
@@ -33,7 +33,7 @@ func RespondErrMessagef(respondFunc events.InteractionResponderFunc, message str
 }
 
 func RespondMessageErr(respondFunc events.InteractionResponderFunc, message string, err error) error {
-	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
+	return respondFunc(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescriptionf(message, err).
 			SetColor(ColorError).
@@ -45,7 +45,7 @@ func RespondMessageErr(respondFunc events.InteractionResponderFunc, message stri
 }
 
 func Respond(respondFunc events.InteractionResponderFunc, message string) error {
-	return respondFunc(discord.InteractionCallbackTypeCreateMessage, discord.NewMessageCreateBuilder().
+	return respondFunc(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(discord.NewEmbedBuilder().
 			SetDescription(message).
 			SetColor(ColorSuccess).

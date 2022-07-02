@@ -3,10 +3,10 @@ module github.com/disgoorg/disgo-butler
 go 1.18
 
 require (
-	github.com/disgoorg/disgo v0.12.0
+	github.com/disgoorg/disgo v0.13.1
 	github.com/disgoorg/log v1.2.0
 	github.com/disgoorg/snowflake/v2 v2.0.0
-	github.com/disgoorg/utils/paginator v0.0.0-20220528122731-2a4e682de628
+	github.com/disgoorg/utils/paginator v0.0.0-20220702232326-4d172e2902b6
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/google/go-github/v44 v44.1.0
 	github.com/hhhapz/doc v0.5.1
