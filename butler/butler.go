@@ -111,10 +111,10 @@ func (b *Butler) SetupDB(shouldSyncDBTables bool) {
 }
 
 func (b *Butler) StartAndBlock() {
-	if err := b.Client.ConnectGateway(context.TODO()); err != nil {
+	if err := b.Client.OpenGateway(context.TODO()); err != nil {
 		b.Logger.Errorf("Failed to connect to gateway: %s", err)
 	}
-	if err := b.Client.StartHTTPServer(); err != nil {
+	if err := b.Client.OpenHTTPServer(); err != nil {
 		b.Logger.Errorf("Failed to start http server: %s", err)
 	}
 

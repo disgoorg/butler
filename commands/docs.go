@@ -59,12 +59,12 @@ func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionCreate)
 }
 
 func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
-	moduleOption, moduleOptionOk := e.Data.StringOption("module")
-	if moduleOptionOk && moduleOption.Focused() {
-		return handleModuleAutocomplete(b, e, moduleOption.Value)
+	moduleOption, moduleOptionOk := e.Data.Option("module")
+	if moduleOptionOk && moduleOption.Focused {
+		return handleModuleAutocomplete(b, e, e.Data.String("module"))
 	}
-	if option, ok := e.Data.StringOption("query"); ok && option.Focused() {
-		return handleQueryAutocomplete(b, e, moduleOption.Value, option.Value)
+	if option, ok := e.Data.Option("query"); ok && option.Focused {
+		return handleQueryAutocomplete(b, e, e.Data.String("module"), e.Data.String("query"))
 	}
 	return e.Result(nil)
 }
