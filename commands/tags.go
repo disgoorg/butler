@@ -11,217 +11,230 @@ import (
 	"github.com/disgoorg/disgo-butler/db"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/handler"
 	"github.com/disgoorg/utils/paginator"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-var TagsCommand = butler.Command{
-	Create: discord.SlashCommandCreate{
-		CommandName: "tags",
-		Description: "let's you create/delete/edit tags",
-		Options: []discord.ApplicationCommandOption{
-			discord.ApplicationCommandOptionSubCommand{
-				CommandName: "create",
-				Description: "let's you create a tag",
-				Options: []discord.ApplicationCommandOption{
-					discord.ApplicationCommandOptionString{
-						OptionName:  "name",
-						Description: "the name of the tag to create",
-						Required:    true,
-					},
-					discord.ApplicationCommandOptionString{
-						OptionName:  "content",
-						Description: "the content of the new tag",
-						Required:    true,
-					},
-				},
-			},
-			discord.ApplicationCommandOptionSubCommand{
-				CommandName: "delete",
-				Description: "let's you delete a tag",
-				Options: []discord.ApplicationCommandOption{
-					discord.ApplicationCommandOptionString{
-						OptionName:   "name",
-						Description:  "the name of the tag to delete",
-						Required:     true,
-						Autocomplete: true,
+func TagsCommand(b *butler.Butler) handler.Command {
+	return handler.Command{
+		Create: discord.SlashCommandCreate{
+			CommandName: "tags",
+			Description: "let's you create/delete/edit tags",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
+					CommandName: "create",
+					Description: "let's you create a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							OptionName:  "name",
+							Description: "the name of the tag to create",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionString{
+							OptionName:  "content",
+							Description: "the content of the new tag",
+							Required:    true,
+						},
 					},
 				},
-			},
-			discord.ApplicationCommandOptionSubCommand{
-				CommandName: "edit",
-				Description: "let's you edit a tag",
-				Options: []discord.ApplicationCommandOption{
-					discord.ApplicationCommandOptionString{
-						OptionName:   "name",
-						Description:  "the name of the tag to edit",
-						Required:     true,
-						Autocomplete: true,
-					},
-					discord.ApplicationCommandOptionString{
-						OptionName:  "content",
-						Description: "the new content of the new tag",
-						Required:    true,
+				discord.ApplicationCommandOptionSubCommand{
+					CommandName: "delete",
+					Description: "let's you delete a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							OptionName:   "name",
+							Description:  "the name of the tag to delete",
+							Required:     true,
+							Autocomplete: true,
+						},
 					},
 				},
-			},
-			discord.ApplicationCommandOptionSubCommand{
-				CommandName: "info",
-				Description: "lets you view a tag's info",
-				Options: []discord.ApplicationCommandOption{
-					discord.ApplicationCommandOptionString{
-						OptionName:   "name",
-						Description:  "the name of the tag to view",
-						Required:     true,
-						Autocomplete: true,
+				discord.ApplicationCommandOptionSubCommand{
+					CommandName: "edit",
+					Description: "let's you edit a tag",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							OptionName:   "name",
+							Description:  "the name of the tag to edit",
+							Required:     true,
+							Autocomplete: true,
+						},
+						discord.ApplicationCommandOptionString{
+							OptionName:  "content",
+							Description: "the new content of the new tag",
+							Required:    true,
+						},
 					},
 				},
-			},
-			discord.ApplicationCommandOptionSubCommand{
-				CommandName: "list",
-				Description: "lists all tags",
-			},
-		},
-	},
-	CommandHandlers: map[string]butler.HandleFunc{
-		"create": createTagHandler,
-		"edit":   editTagHandler,
-		"delete": deleteTagHandler,
-		"info":   infoTagHandler,
-		"list":   listTagHandler,
-	},
-	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
-		"edit":   autoCompleteListTagHandler(true),
-		"delete": autoCompleteListTagHandler(true),
-		"list":   autoCompleteListTagHandler(false),
-		"info":   autoCompleteListTagHandler(false),
-	},
-}
-
-func createTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	data := e.SlashCommandInteractionData()
-	name := formatTagName(data.String("name"))
-
-	if _, err := b.DB.Get(*e.GuildID(), name); err == nil {
-		return common.RespondErrMessage(e.Respond, "Tag already exists.")
-	} else if err != nil && err != sql.ErrNoRows {
-		return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
-	}
-
-	if err := b.DB.Create(*e.GuildID(), e.User().ID, name, data.String("content")); err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to create tag: %s", err)
-	}
-	return common.Respond(e.Respond, "Tag created!")
-}
-
-func editTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	data := e.SlashCommandInteractionData()
-	name := formatTagName(data.String("name"))
-
-	tag, err := b.DB.Get(*e.GuildID(), name)
-	if err == sql.ErrNoRows {
-		return common.RespondErrMessage(e.Respond, "Tag not found.")
-	} else if err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
-	}
-	if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
-		return common.RespondErrMessage(e.Respond, "You do not have permission to edit this tag.")
-	}
-
-	if err = b.DB.Edit(*e.GuildID(), name, data.String("content")); err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
-	}
-	return common.Respond(e.Respond, "Tag edited.")
-}
-
-func deleteTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	data := e.SlashCommandInteractionData()
-	name := formatTagName(data.String("name"))
-
-	tag, err := b.DB.Get(*e.GuildID(), name)
-	if err == sql.ErrNoRows {
-		return common.RespondErrMessage(e.Respond, "Tag not found.")
-	} else if err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
-	}
-	if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
-		return common.RespondErrMessage(e.Respond, "You do not have permission to delete this tag.")
-	}
-
-	if err = b.DB.Delete(*e.GuildID(), name); err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
-	}
-	return common.Respond(e.Respond, "Tag deleted.")
-}
-
-func infoTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	data := e.SlashCommandInteractionData()
-	name := formatTagName(data.String("name"))
-	tag, err := b.DB.Get(*e.GuildID(), name)
-	if err == sql.ErrNoRows {
-		return common.Respondf(e.Respond, "Tag `%s` does not exist.", name)
-	} else if err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to get tag info: ", err)
-	}
-	return e.CreateMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{
-			{
-				Title:       fmt.Sprintf("Tag `%s`", name),
-				Description: tag.Content,
-				Fields: []discord.EmbedField{
-					{
-						Name:  "Created by",
-						Value: discord.UserMention(tag.OwnerID),
+				discord.ApplicationCommandOptionSubCommand{
+					CommandName: "info",
+					Description: "lets you view a tag's info",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							OptionName:   "name",
+							Description:  "the name of the tag to view",
+							Required:     true,
+							Autocomplete: true,
+						},
 					},
-					{
-						Name:  "Uses",
-						Value: strconv.Itoa(tag.Uses),
-					},
-					{
-						Name:  "Created at",
-						Value: fmt.Sprintf("%s (%s)", discord.NewTimestamp(discord.TimestampStyleNone, tag.CreatedAt), discord.NewTimestamp(discord.TimestampStyleRelative, tag.CreatedAt)),
-					},
+				},
+				discord.ApplicationCommandOptionSubCommand{
+					CommandName: "list",
+					Description: "lists all tags",
 				},
 			},
 		},
-	})
+		CommandHandlers: map[string]handler.CommandHandler{
+			"create": createTagHandler(b),
+			"edit":   editTagHandler(b),
+			"delete": deleteTagHandler(b),
+			"info":   infoTagHandler(b),
+			"list":   listTagHandler(b),
+		},
+		AutocompleteHandlers: map[string]handler.AutocompleteHandler{
+			"edit":   autoCompleteListTagHandler(b, true),
+			"delete": autoCompleteListTagHandler(b, true),
+			"list":   autoCompleteListTagHandler(b, false),
+			"info":   autoCompleteListTagHandler(b, false),
+		},
+	}
 }
 
-func listTagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	tags, err := b.DB.GetAll(*e.GuildID())
-	if err != nil {
-		return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
-	}
-	if len(tags) == 0 {
-		return common.Respond(e.Respond, "No tags found.")
-	}
+func createTagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
+		name := formatTagName(data.String("name"))
 
-	var pages []string
-	curPage := ""
-	for _, tag := range tags {
-		newPage := fmt.Sprintf("**%s** - %s\n", tag.Name, discord.UserMention(tag.OwnerID))
-		if len(curPage)+len(newPage) > 2000 {
-			pages = append(pages, curPage)
-			curPage = ""
+		if _, err := b.DB.Get(*e.GuildID(), name); err == nil {
+			return common.RespondErrMessage(e.Respond, "Tag already exists.")
+		} else if err != nil && err != sql.ErrNoRows {
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
 		}
-		curPage += newPage
-	}
-	if len(curPage) > 0 {
-		pages = append(pages, curPage)
-	}
 
-	return b.Paginator.Create(e.Respond, &paginator.Paginator{
-		PageFunc: func(page int, embed *discord.EmbedBuilder) {
-			embed.SetDescription(pages[page])
-		},
-		MaxPages:        len(pages),
-		ExpiryLastUsage: true,
-		ID:              e.ID().String(),
-	})
+		if err := b.DB.Create(*e.GuildID(), e.User().ID, name, data.String("content")); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to create tag: %s", err)
+		}
+		return common.Respond(e.Respond, "Tag created!")
+	}
 }
 
-func autoCompleteListTagHandler(filterTags bool) func(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
-	return func(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
+func editTagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
+		name := formatTagName(data.String("name"))
+
+		tag, err := b.DB.Get(*e.GuildID(), name)
+		if err == sql.ErrNoRows {
+			return common.RespondErrMessage(e.Respond, "Tag not found.")
+		} else if err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
+		}
+		if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
+			return common.RespondErrMessage(e.Respond, "You do not have permission to edit this tag.")
+		}
+
+		if err = b.DB.Edit(*e.GuildID(), name, data.String("content")); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
+		}
+		return common.Respond(e.Respond, "Tag edited.")
+	}
+}
+
+func deleteTagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
+		name := formatTagName(data.String("name"))
+
+		tag, err := b.DB.Get(*e.GuildID(), name)
+		if err == sql.ErrNoRows {
+			return common.RespondErrMessage(e.Respond, "Tag not found.")
+		} else if err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
+		}
+		if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
+			return common.RespondErrMessage(e.Respond, "You do not have permission to delete this tag.")
+		}
+
+		if err = b.DB.Delete(*e.GuildID(), name); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
+		}
+		return common.Respond(e.Respond, "Tag deleted.")
+	}
+}
+
+func infoTagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
+		name := formatTagName(data.String("name"))
+		tag, err := b.DB.Get(*e.GuildID(), name)
+		if err == sql.ErrNoRows {
+			return common.Respondf(e.Respond, "Tag `%s` does not exist.", name)
+		} else if err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to get tag info: ", err)
+		}
+		return e.CreateMessage(discord.MessageCreate{
+			Embeds: []discord.Embed{
+				{
+					Title:       fmt.Sprintf("Tag `%s`", name),
+					Description: tag.Content,
+					Fields: []discord.EmbedField{
+						{
+							Name:  "Created by",
+							Value: discord.UserMention(tag.OwnerID),
+						},
+						{
+							Name:  "Uses",
+							Value: strconv.Itoa(tag.Uses),
+						},
+						{
+							Name:  "Created at",
+							Value: fmt.Sprintf("%s (%s)", discord.NewTimestamp(discord.TimestampStyleNone, tag.CreatedAt), discord.NewTimestamp(discord.TimestampStyleRelative, tag.CreatedAt)),
+						},
+					},
+				},
+			},
+		})
+	}
+}
+
+func listTagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		tags, err := b.DB.GetAll(*e.GuildID())
+		if err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
+		}
+		if len(tags) == 0 {
+			return common.Respond(e.Respond, "No tags found.")
+		}
+
+		var pages []string
+		curPage := ""
+		for _, tag := range tags {
+			newPage := fmt.Sprintf("**%s** - %s\n", tag.Name, discord.UserMention(tag.OwnerID))
+			if len(curPage)+len(newPage) > 2000 {
+				pages = append(pages, curPage)
+				curPage = ""
+			}
+			curPage += newPage
+		}
+		if len(curPage) > 0 {
+			pages = append(pages, curPage)
+		}
+
+		return b.Paginator.Create(e.Respond, &paginator.Paginator{
+			PageFunc: func(page int, embed *discord.EmbedBuilder) {
+				embed.SetDescription(pages[page])
+			},
+			MaxPages:        len(pages),
+			ExpiryLastUsage: true,
+			ID:              e.ID().String(),
+		})
+	}
+}
+
+func autoCompleteListTagHandler(b *butler.Butler, filterTags bool) func(e *events.AutocompleteInteractionCreate) error {
+	return func(e *events.AutocompleteInteractionCreate) error {
 		name := formatTagName(e.Data.String("name"))
 
 		var (

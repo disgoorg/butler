@@ -18,34 +18,36 @@ import (
 	"github.com/disgoorg/disgo/httpserver"
 	"github.com/disgoorg/disgo/oauth2"
 	"github.com/disgoorg/disgo/webhook"
+	"github.com/disgoorg/handler"
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/utils/paginator"
 	"github.com/google/go-github/v44/github"
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
+	gopiston "github.com/milindmadhukar/go-piston"
 )
 
 func New(logger log.Logger, version string, config Config) *Butler {
 	return &Butler{
-		Config:     config,
-		Logger:     logger,
-		Commands:   map[string]Command{},
-		Components: map[string]Component{},
-		Webhooks:   map[string]webhook.Client{},
-		Paginator:  paginator.NewManager(),
-		Version:    version,
+		Handler:      handler.New(logger),
+		PistonClient: gopiston.CreateDefaultClient(),
+		Config:       config,
+		Logger:       logger,
+		Webhooks:     map[string]webhook.Client{},
+		Paginator:    paginator.NewManager(),
+		Version:      version,
 	}
 }
 
 type Butler struct {
+	Handler      *handler.Handler
 	Client       bot.Client
 	OAuth2       oauth2.Client
+	PistonClient *gopiston.Client
 	Logger       log.Logger
 	Mux          *http.ServeMux
 	GitHubClient *github.Client
 	Paginator    *paginator.Manager
-	Commands     map[string]Command
-	Components   map[string]Component
 	DocClient    *doc.CachedSearcher
 	ModMail      *mod_mail.ModMail
 	DB           db.DB
@@ -78,11 +80,7 @@ func (b *Butler) SetupBot() {
 		),
 		bot.WithCacheConfigOpts(cache.WithCacheFlags(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(b.OnReady),
-		bot.WithEventListenerFunc(b.OnApplicationCommandInteraction),
-		bot.WithEventListenerFunc(b.OnComponentInteraction),
-		bot.WithEventListenerFunc(b.OnAutocompleteInteraction),
-		bot.WithEventListeners(b.Paginator),
-		bot.WithEventListeners(b.ModMail),
+		bot.WithEventListeners(b.Handler, b.Paginator, b.ModMail),
 		bot.WithHTTPServerConfigOpts(b.Config.Interactions.PublicKey,
 			httpserver.WithServeMux(b.Mux),
 			httpserver.WithAddress(b.Config.Interactions.Address),
@@ -97,10 +95,16 @@ func (b *Butler) SetupBot() {
 
 	b.GitHubClient = github.NewClient(b.Client.Rest().HTTPClient())
 	b.DocClient = doc.WithCache(doc.New(b.Client.Rest().HTTPClient(), godocs.Parser))
-	b.Logger.Info("Loading go modules aliases...")
-	for _, module := range b.Config.Docs.Aliases {
-		_, _ = b.DocClient.Search(context.TODO(), module)
-	}
+
+	go func() {
+		b.Logger.Info("Loading go modules aliases...")
+		for _, module := range b.Config.Docs.Aliases {
+			b.Logger.Infof("Loading alias %s...", module)
+			if _, err = b.DocClient.Search(context.TODO(), module); err != nil {
+				b.Logger.Errorf("Failed to load module alias %s: %s", module, err)
+			}
+		}
+	}()
 }
 
 func (b *Butler) SetupDB(shouldSyncDBTables bool) {

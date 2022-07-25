@@ -5,68 +5,78 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/handler"
 	"github.com/hhhapz/doc"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-var DocsCommand = butler.Command{
-	Create: discord.SlashCommandCreate{
-		CommandName: "docs",
-		Description: "Provides info to the provided module, type, function, etc.",
-		Options: []discord.ApplicationCommandOption{
-			discord.ApplicationCommandOptionString{
-				OptionName:   "module",
-				Description:  "The module to lookup. Example: github.com/disgoorg/disgo/discord",
-				Required:     true,
-				Autocomplete: true,
-			},
-			discord.ApplicationCommandOptionString{
-				OptionName:   "query",
-				Description:  "The lookup query. Example: MessageCreate",
-				Required:     true,
-				Autocomplete: true,
+func DocsCommand(b *butler.Butler) handler.Command {
+	return handler.Command{
+		Create: discord.SlashCommandCreate{
+			CommandName: "docs",
+			Description: "Provides info to the provided module, type, function, etc.",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					OptionName:   "module",
+					Description:  "The module to lookup. Example: github.com/disgoorg/disgo/discord",
+					Required:     true,
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					OptionName:   "query",
+					Description:  "The lookup query. Example: MessageCreate",
+					Required:     true,
+					Autocomplete: true,
+				},
 			},
 		},
-	},
-	CommandHandlers: map[string]butler.HandleFunc{
-		"": handleDocs,
-	},
-	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
-		"": handleDocsAutocomplete,
-	},
+		CommandHandlers: map[string]handler.CommandHandler{
+			"": handleDocs(b),
+		},
+		AutocompleteHandlers: map[string]handler.AutocompleteHandler{
+			"": handleDocsAutocomplete(b),
+		},
+	}
 }
 
-func handleDocs(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	data := e.SlashCommandInteractionData()
+func handleDocs(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 
-	pkg, err := b.DocClient.Search(context.Background(), data.String("module"))
-	if err != nil {
-		return common.RespondErr(e.Respond, err)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		pkg, err := b.DocClient.Search(ctx, data.String("module"))
+		if err != nil {
+			return common.RespondErr(e.Respond, err)
+		}
+
+		embed, selectMenu := butler.GetDocsEmbed(pkg, data.String("query"), false, false, false, false)
+
+		return e.CreateMessage(discord.NewMessageCreateBuilder().
+			SetEmbeds(embed).
+			AddActionRow(selectMenu).
+			Build(),
+		)
 	}
-
-	embed, selectMenu := butler.GetDocsEmbed(pkg, data.String("query"), false, false, false, false)
-
-	return e.CreateMessage(discord.NewMessageCreateBuilder().
-		SetEmbeds(embed).
-		AddActionRow(selectMenu).
-		Build(),
-	)
 }
 
-func handleDocsAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate) error {
-	moduleOption, moduleOptionOk := e.Data.Option("module")
-	if moduleOptionOk && moduleOption.Focused {
-		return handleModuleAutocomplete(b, e, e.Data.String("module"))
+func handleDocsAutocomplete(b *butler.Butler) func(e *events.AutocompleteInteractionCreate) error {
+	return func(e *events.AutocompleteInteractionCreate) error {
+		moduleOption, moduleOptionOk := e.Data.Option("module")
+		if moduleOptionOk && moduleOption.Focused {
+			return handleModuleAutocomplete(b, e, e.Data.String("module"))
+		}
+		if option, ok := e.Data.Option("query"); ok && option.Focused {
+			return handleQueryAutocomplete(b, e, e.Data.String("module"), e.Data.String("query"))
+		}
+		return e.Result(nil)
 	}
-	if option, ok := e.Data.Option("query"); ok && option.Focused {
-		return handleQueryAutocomplete(b, e, e.Data.String("module"), e.Data.String("query"))
-	}
-	return e.Result(nil)
 }
 
 func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string) error {
@@ -81,7 +91,9 @@ func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractio
 			}
 		})
 	} else {
-		_, _ = b.DocClient.Search(context.TODO(), module)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_, _ = b.DocClient.Search(ctx, module)
 		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
 			var packages []string
 			for _, pkg := range cache {
@@ -102,7 +114,9 @@ func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractio
 }
 
 func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string, query string) error {
-	pkg, err := b.DocClient.Search(context.Background(), module)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	pkg, err := b.DocClient.Search(ctx, module)
 	if err == doc.InvalidStatusError(404) {
 		return e.Result([]discord.AutocompleteChoice{
 			discord.AutocompleteChoiceString{Name: "module not found", Value: ""},

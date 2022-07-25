@@ -7,38 +7,43 @@ import (
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/handler"
 )
 
-var TagCommand = butler.Command{
-	Create: discord.SlashCommandCreate{
-		CommandName: "tag",
-		Description: "Let's you display a tag",
-		Options: []discord.ApplicationCommandOption{
+func TagCommand(b *butler.Butler) handler.Command {
+	return handler.Command{
+		Create: discord.SlashCommandCreate{
+			CommandName: "tag",
+			Description: "Let's you display a tag",
+			Options: []discord.ApplicationCommandOption{
 
-			discord.ApplicationCommandOptionString{
-				OptionName:   "name",
-				Description:  "The name of the tag to display",
-				Required:     true,
-				Autocomplete: true,
+				discord.ApplicationCommandOptionString{
+					OptionName:   "name",
+					Description:  "The name of the tag to display",
+					Required:     true,
+					Autocomplete: true,
+				},
 			},
 		},
-	},
-	CommandHandlers: map[string]butler.HandleFunc{
-		"": tagHandler,
-	},
-	AutocompleteHandlers: map[string]butler.AutocompleteHandleFunc{
-		"": autoCompleteListTagHandler(false),
-	},
+		CommandHandlers: map[string]handler.CommandHandler{
+			"": tagHandler(b),
+		},
+		AutocompleteHandlers: map[string]handler.AutocompleteHandler{
+			"": autoCompleteListTagHandler(b, false),
+		},
+	}
 }
 
-func tagHandler(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
-	if err == sql.ErrNoRows {
-		return common.RespondErrMessage(e.Respond, "Tag not found")
-	} else if err != nil {
-		return common.RespondErr(e.Respond, err)
+func tagHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
+		if err == sql.ErrNoRows {
+			return common.RespondErrMessage(e.Respond, "Tag not found")
+		} else if err != nil {
+			return common.RespondErr(e.Respond, err)
+		}
+		return e.CreateMessage(discord.MessageCreate{
+			Content: tag.Content,
+		})
 	}
-	return e.CreateMessage(discord.MessageCreate{
-		Content: tag.Content,
-	})
 }

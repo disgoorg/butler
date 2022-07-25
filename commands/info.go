@@ -6,30 +6,35 @@ import (
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/handler"
 )
 
-var InfoCommand = butler.Command{
-	Create: discord.SlashCommandCreate{
-		CommandName: "info",
-		Description: "Provides information about disgo",
-	},
-	CommandHandlers: map[string]butler.HandleFunc{
-		"": handleInfo,
-	},
+func InfoCommand(b *butler.Butler) handler.Command {
+	return handler.Command{
+		Create: discord.SlashCommandCreate{
+			CommandName: "info",
+			Description: "Provides information about disgo",
+		},
+		CommandHandlers: map[string]handler.CommandHandler{
+			"": handleInfo(b),
+		},
+	}
 }
 
-func handleInfo(b *butler.Butler, e *events.ApplicationCommandInteractionCreate) error {
-	user, _ := b.Client.Caches().GetSelfUser()
-	return e.CreateMessage(discord.NewMessageCreateBuilder().
-		SetEmbeds(discord.NewEmbedBuilder().
-			SetTitle("DisGo Butler").
-			SetThumbnail(user.EffectiveAvatarURL()).
-			SetColor(common.ColorSuccess).
-			AddField("Version", b.Version, false).
-			AddField("DisGo Version", disgo.Version, false).
+func handleInfo(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		user, _ := b.Client.Caches().GetSelfUser()
+		return e.CreateMessage(discord.NewMessageCreateBuilder().
+			SetEmbeds(discord.NewEmbedBuilder().
+				SetTitle("DisGo Butler").
+				SetThumbnail(user.EffectiveAvatarURL()).
+				SetColor(common.ColorSuccess).
+				AddField("Version", b.Version, false).
+				AddField("DisGo Version", disgo.Version, false).
+				Build(),
+			).
+			AddActionRow(discord.NewLinkButton("GitHub", "https://github.com/disgoorg/disgo-butler")).
 			Build(),
-		).
-		AddActionRow(discord.NewLinkButton("GitHub", "https://github.com/disgoorg/disgo-butler")).
-		Build(),
-	)
+		)
+	}
 }

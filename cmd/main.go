@@ -8,6 +8,7 @@ import (
 	"github.com/disgoorg/disgo-butler/components"
 	"github.com/disgoorg/disgo-butler/routes"
 	"github.com/disgoorg/log"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -46,17 +47,22 @@ func main() {
 
 	b.SetupBot()
 	b.SetupDB(*shouldSyncDBTables)
-	b.SetupCommands(*shouldSyncCommands,
+	b.Handler.AddCommands(
 		commands.PingCommand,
-		commands.InfoCommand,
-		commands.DocsCommand,
-		commands.TagCommand,
-		commands.TagsCommand,
-		commands.ConfigCommand,
-		commands.TicketCommand(b.ModMail),
+		commands.InfoCommand(b),
+		commands.DocsCommand(b),
+		commands.TagCommand(b),
+		commands.TagsCommand(b),
+		commands.ConfigCommand(b),
+		commands.TicketCommand(b),
 	)
-	b.SetupComponents(
-		components.DocsActionComponent,
-	)
+	b.Handler.AddComponents(components.DocsActionComponent(b))
+	if *shouldSyncCommands {
+		var guildIDs []snowflake.ID
+		if cfg.DevMode {
+			guildIDs = append(guildIDs, cfg.GuildID)
+		}
+		b.Handler.SyncCommands(b.Client, guildIDs...)
+	}
 	b.StartAndBlock()
 }

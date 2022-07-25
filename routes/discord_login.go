@@ -80,6 +80,10 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			}
 			for _, contributor := range contributors {
 				if contributor.GetLogin() == conn.Name {
+					// need at least 10 contributions
+					if contributor.Contributions != nil && *contributor.Contributions < 10 {
+						continue
+					}
 					if !slices.Contains(roleIDs, roleID) {
 						roleIDs = append(roleIDs, roleID)
 					}
