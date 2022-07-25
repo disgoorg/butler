@@ -4,7 +4,6 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/json"
 	"github.com/disgoorg/handler"
 )
@@ -12,7 +11,7 @@ import (
 func TicketCommand(b *butler.Butler) handler.Command {
 	return handler.Command{
 		Create: discord.SlashCommandCreate{
-			CommandName:  "close-ticket",
+			Name:         "close-ticket",
 			Description:  "Closes the current ticket.",
 			DMPermission: false,
 		},
@@ -22,34 +21,34 @@ func TicketCommand(b *butler.Butler) handler.Command {
 	}
 }
 
-func modMailHandler(b *butler.Butler) func(e *events.ApplicationCommandInteractionCreate) error {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func modMailHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
+	return func(ctx *handler.CommandContext) error {
 		b.ModMail.Mu.Lock()
 		defer b.ModMail.Mu.Unlock()
 
-		dmID, ok := b.ModMail.ThreadDMs[e.ChannelID()]
+		dmID, ok := b.ModMail.ThreadDMs[ctx.ChannelID()]
 		if !ok {
-			return common.RespondErrMessage(e.Respond, "No ticket found for this thread.")
+			return common.RespondErrMessage(ctx.Respond, "No ticket found for this thread.")
 		}
-		delete(b.ModMail.ThreadDMs, e.ChannelID())
+		delete(b.ModMail.ThreadDMs, ctx.ChannelID())
 		delete(b.ModMail.DMThreads, dmID)
 
-		if _, err := e.Client().Rest().CreateMessage(dmID, discord.MessageCreate{
+		if _, err := ctx.Client().Rest().CreateMessage(dmID, discord.MessageCreate{
 			Embeds: []discord.Embed{
 				{
 					Author: &discord.EmbedAuthor{
-						Name:    e.User().Tag(),
-						IconURL: e.User().EffectiveAvatarURL(),
+						Name:    ctx.User().Tag(),
+						IconURL: ctx.User().EffectiveAvatarURL(),
 					},
 					Description: "Ticket closed.",
 					Color:       0xFF0000,
 				},
 			},
 		}); err != nil {
-			e.Client().Logger().Error("failed to close ticket in dm: ", err)
+			ctx.Client().Logger().Error("failed to close ticket in dm: ", err)
 		}
 
-		if err := e.CreateMessage(discord.MessageCreate{
+		if err := ctx.CreateMessage(discord.MessageCreate{
 			Embeds: []discord.Embed{
 				{
 					Description: "Ticket closed.",
@@ -57,10 +56,10 @@ func modMailHandler(b *butler.Butler) func(e *events.ApplicationCommandInteracti
 				},
 			},
 		}); err != nil {
-			e.Client().Logger().Error("failed to respond to close ticket in channel: ", err)
+			ctx.Client().Logger().Error("failed to respond to close ticket in channel: ", err)
 		}
 
-		_, err := e.Client().Rest().UpdateChannel(e.ChannelID(), discord.GuildThreadUpdate{
+		_, err := ctx.Client().Rest().UpdateChannel(ctx.ChannelID(), discord.GuildThreadUpdate{
 			Archived: json.NewPtr(true),
 		})
 		return err

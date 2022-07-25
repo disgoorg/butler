@@ -5,14 +5,13 @@ import (
 
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/handler"
 )
 
 var PingCommand = handler.Command{
 	Create: discord.SlashCommandCreate{
-		CommandName: "ping",
+		Name:        "ping",
 		Description: "Responds with pong",
 	},
 	CommandHandlers: map[string]handler.CommandHandler{
@@ -20,10 +19,10 @@ var PingCommand = handler.Command{
 	},
 }
 
-func handlePing(e *events.ApplicationCommandInteractionCreate) error {
+func handlePing(ctx *handler.CommandContext) error {
 	var gatewayPing string
-	if e.Client().HasGateway() {
-		gatewayPing = e.Client().Gateway().Latency().String()
+	if ctx.Client().HasGateway() {
+		gatewayPing = ctx.Client().Gateway().Latency().String()
 	}
 
 	eb := discord.NewEmbedBuilder().
@@ -34,17 +33,17 @@ func handlePing(e *events.ApplicationCommandInteractionCreate) error {
 
 	defer func() {
 		var start int64
-		_, _ = e.Client().Rest().GetBotApplicationInfo(func(config *rest.RequestConfig) {
+		_, _ = ctx.Client().Rest().GetBotApplicationInfo(func(config *rest.RequestConfig) {
 			start = time.Now().UnixNano()
 		})
 		duration := time.Now().UnixNano() - start
 		eb.SetField(0, "Rest", time.Duration(duration).String(), false)
-		if _, err := e.Client().Rest().UpdateInteractionResponse(e.ApplicationID(), e.Token(), discord.MessageUpdate{Embeds: &[]discord.Embed{eb.Build()}}); err != nil {
-			e.Client().Logger().Error("Failed to update ping embed: ", err)
+		if _, err := ctx.Client().Rest().UpdateInteractionResponse(ctx.ApplicationID(), ctx.Token(), discord.MessageUpdate{Embeds: &[]discord.Embed{eb.Build()}}); err != nil {
+			ctx.Client().Logger().Error("Failed to update ping embed: ", err)
 		}
 	}()
 
-	return e.Respond(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
+	return ctx.Respond(discord.InteractionResponseTypeCreateMessage, discord.NewMessageCreateBuilder().
 		SetEmbeds(eb.Build()).
 		Build(),
 	)
