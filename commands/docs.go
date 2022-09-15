@@ -10,6 +10,7 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
 	"github.com/hhhapz/doc"
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -44,20 +45,20 @@ func DocsCommand(b *butler.Butler) handler.Command {
 	}
 }
 
-func handleDocs(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		data := ctx.SlashCommandInteractionData()
+func handleDocs(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 
-		ctxx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ex, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		pkg, err := b.DocClient.Search(ctxx, data.String("module"))
+		pkg, err := b.DocClient.Search(ex, data.String("module"))
 		if err != nil {
-			return common.RespondErr(ctx.Respond, err)
+			return common.RespondErr(e.Respond, err)
 		}
 
 		embed, selectMenu := butler.GetDocsEmbed(pkg, data.String("query"), false, false, false, false)
 
-		return ctx.CreateMessage(discord.NewMessageCreateBuilder().
+		return e.CreateMessage(discord.NewMessageCreateBuilder().
 			SetEmbeds(embed).
 			AddActionRow(selectMenu).
 			Build(),
@@ -65,20 +66,20 @@ func handleDocs(b *butler.Butler) func(ctx *handler.CommandContext) error {
 	}
 }
 
-func handleDocsAutocomplete(b *butler.Butler) func(ctx *handler.AutocompleteContext) error {
-	return func(ctx *handler.AutocompleteContext) error {
-		moduleOption, moduleOptionOk := ctx.Data.Option("module")
+func handleDocsAutocomplete(b *butler.Butler) handler.AutocompleteHandler {
+	return func(e *events.AutocompleteInteractionCreate) error {
+		moduleOption, moduleOptionOk := e.Data.Option("module")
 		if moduleOptionOk && moduleOption.Focused {
-			return handleModuleAutocomplete(b, ctx, ctx.Data.String("module"))
+			return handleModuleAutocomplete(b, e, e.Data.String("module"))
 		}
-		if option, ok := ctx.Data.Option("query"); ok && option.Focused {
-			return handleQueryAutocomplete(b, ctx, ctx.Data.String("module"), ctx.Data.String("query"))
+		if option, ok := e.Data.Option("query"); ok && option.Focused {
+			return handleQueryAutocomplete(b, e, e.Data.String("module"), e.Data.String("query"))
 		}
-		return ctx.Result(nil)
+		return e.Result(nil)
 	}
 }
 
-func handleModuleAutocomplete(b *butler.Butler, ctx *handler.AutocompleteContext, module string) error {
+func handleModuleAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string) error {
 	choices := make([]discord.AutocompleteChoiceString, 0, 25)
 	if module == "" {
 		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
@@ -90,9 +91,9 @@ func handleModuleAutocomplete(b *butler.Butler, ctx *handler.AutocompleteContext
 			}
 		})
 	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		e, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_, _ = b.DocClient.Search(ctx, module)
+		_, _ = b.DocClient.Search(e, module)
 		b.DocClient.WithCache(func(cache map[string]*doc.CachedPackage) {
 			var packages []string
 			for _, pkg := range cache {
@@ -109,19 +110,19 @@ func handleModuleAutocomplete(b *butler.Butler, ctx *handler.AutocompleteContext
 			}
 		})
 	}
-	return ctx.Result(replaceAliases(b, choices))
+	return e.Result(replaceAliases(b, choices))
 }
 
-func handleQueryAutocomplete(b *butler.Butler, ctx *handler.AutocompleteContext, module string, query string) error {
-	ctxx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+func handleQueryAutocomplete(b *butler.Butler, e *events.AutocompleteInteractionCreate, module string, query string) error {
+	ex, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	pkg, err := b.DocClient.Search(ctxx, module)
+	pkg, err := b.DocClient.Search(ex, module)
 	if err == doc.InvalidStatusError(404) {
-		return ctx.Result([]discord.AutocompleteChoice{
+		return e.Result([]discord.AutocompleteChoice{
 			discord.AutocompleteChoiceString{Name: "module not found", Value: ""},
 		})
 	} else if err != nil {
-		return ctx.Result(nil)
+		return e.Result(nil)
 	}
 	choices := make([]discord.AutocompleteChoiceString, 0, 25)
 	if query == "" {
@@ -146,7 +147,7 @@ func handleQueryAutocomplete(b *butler.Butler, ctx *handler.AutocompleteContext,
 		}
 		choices = append(choices, discord.AutocompleteChoiceString{Name: rank.Target, Value: rank.Target})
 	}
-	return ctx.Result(replaceAliases(b, choices))
+	return e.Result(replaceAliases(b, choices))
 }
 
 func replaceAliases(b *butler.Butler, choices []discord.AutocompleteChoiceString) []discord.AutocompleteChoice {

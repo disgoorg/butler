@@ -41,7 +41,7 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 			}, func(e *events.ComponentInteractionCreate) {
 				if e.Data.CustomID() == "no" {
 					accepted = false
-					if err := e.UpdateMessage(discord.MessageUpdate{
+					if err = e.UpdateMessage(discord.MessageUpdate{
 						Embeds: &[]discord.Embed{
 							{
 								Description: "No Ticket created.",
@@ -66,7 +66,7 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 
 				threadID = thread.ID()
 
-				if _, err := m.webhookClient.CreateMessageInThread(discord.WebhookMessageCreate{
+				if _, err = m.webhookClient.CreateMessageInThread(discord.WebhookMessageCreate{
 					Content:         fmt.Sprintf("%s\nNew ticket opened by %s(`%s`)", discord.RoleMention(m.roleID), event.Message.Author.Tag(), event.Message.Author.ID),
 					AllowedMentions: &discord.DefaultAllowedMentions,
 				}, threadID); err != nil {
@@ -77,7 +77,7 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 				defer m.Mu.Unlock()
 				m.DMThreads[event.ChannelID] = threadID
 				m.ThreadDMs[threadID] = event.ChannelID
-				if err := e.UpdateMessage(discord.MessageUpdate{
+				if err = e.UpdateMessage(discord.MessageUpdate{
 					Embeds: &[]discord.Embed{
 						{
 							Description: "New Ticket created.",
@@ -90,7 +90,7 @@ func (m *ModMail) dmMessageCreateListener(event *events.DMMessageCreate) {
 				}
 			}, func() {
 				accepted = false
-				if _, err := event.Client().Rest().UpdateMessage(event.ChannelID, newTicketMessage.ID, discord.MessageUpdate{
+				if _, err = event.Client().Rest().UpdateMessage(event.ChannelID, newTicketMessage.ID, discord.MessageUpdate{
 					Embeds: &[]discord.Embed{
 						{
 							Description: "Ticket creation timed out.",

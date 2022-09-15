@@ -5,6 +5,7 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
 )
 
@@ -20,10 +21,10 @@ func InfoCommand(b *butler.Butler) handler.Command {
 	}
 }
 
-func handleInfo(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
+func handleInfo(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
 		user, _ := b.Client.Caches().GetSelfUser()
-		return ctx.CreateMessage(discord.NewMessageCreateBuilder().
+		return e.CreateMessage(discord.NewMessageCreateBuilder().
 			SetEmbeds(discord.NewEmbedBuilder().
 				SetTitle("DisGo Butler").
 				SetThumbnail(user.EffectiveAvatarURL()).

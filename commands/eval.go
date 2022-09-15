@@ -8,8 +8,9 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
-	"github.com/milindmadhukar/go-piston"
+	gopiston "github.com/milindmadhukar/go-piston"
 )
 
 var discordCodeblockRegex = regexp.MustCompile(`(?s)\x60\x60\x60(?P<language>\w+)\n(?P<code>.+)\x60\x60\x60`)
@@ -26,13 +27,13 @@ func Eval(b *butler.Butler) handler.Command {
 }
 
 func handleEval(b *butler.Butler) handler.CommandHandler {
-	return func(ctx *handler.CommandContext) error {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
 		runtimes, err := b.PistonClient.GetRuntimes()
 		if err != nil {
-			return common.RespondErr(ctx.Respond, err)
+			return common.RespondErr(e.Respond, err)
 		}
 
-		data := ctx.MessageCommandInteractionData()
+		data := e.MessageCommandInteractionData()
 
 		matches := discordCodeblockRegex.FindStringSubmatch(data.TargetMessage().Content)
 		rawLanguage := matches[discordCodeblockRegex.SubexpIndex("language")]
@@ -53,10 +54,10 @@ func handleEval(b *butler.Butler) handler.CommandHandler {
 			}
 		}
 		if language == "" {
-			return common.RespondErrMessagef(ctx.Respond, "Language %s is not supported", rawLanguage)
+			return common.RespondErrMessagef(e.Respond, "Language %s is not supported", rawLanguage)
 		}
 
-		if err = ctx.DeferCreateMessage(false); err != nil {
+		if err = e.DeferCreateMessage(false); err != nil {
 			return err
 		}
 
@@ -94,7 +95,7 @@ func handleEval(b *butler.Butler) handler.CommandHandler {
 			}
 		}
 
-		_, err = ctx.Client().Rest().UpdateInteractionResponse(ctx.ApplicationID(), ctx.Token(), discord.MessageUpdate{
+		_, err = e.Client().Rest().UpdateInteractionResponse(e.ApplicationID(), e.Token(), discord.MessageUpdate{
 			Embeds: &[]discord.Embed{output},
 		})
 		return err

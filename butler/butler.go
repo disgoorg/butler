@@ -68,15 +68,10 @@ func (b *Butler) SetupBot() {
 		bot.WithGatewayConfigOpts(
 			gateway.WithIntents(gateway.IntentGuildMessages|gateway.IntentDirectMessages|gateway.IntentGuildMessageTyping|gateway.IntentDirectMessageTyping|gateway.IntentMessageContent),
 			gateway.WithCompress(true),
-			gateway.WithPresence(gateway.MessageDataPresenceUpdate{
-				Activities: []discord.Activity{
-					{
-						Name: "loading...",
-						Type: discord.ActivityTypeGame,
-					},
-				},
-				Status: discord.OnlineStatusDND,
-			}),
+			gateway.WithPresenceOpts(
+				gateway.WithPlayingActivity("loading..."),
+				gateway.WithOnlineStatus(discord.OnlineStatusDND),
+			),
 		),
 		bot.WithCacheConfigOpts(cache.WithCacheFlags(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(b.OnReady),
@@ -140,15 +135,10 @@ func (b *Butler) StartAndBlock() {
 
 func (b *Butler) OnReady(_ *events.Ready) {
 	b.Logger.Infof("Butler ready")
-	if err := b.Client.SetPresence(context.TODO(), gateway.MessageDataPresenceUpdate{
-		Activities: []discord.Activity{
-			{
-				Name: "you in DMs",
-				Type: discord.ActivityTypeListening,
-			},
-		},
-		Status: discord.OnlineStatusOnline,
-	}); err != nil {
+	if err := b.Client.SetPresence(context.TODO(),
+		gateway.WithListeningActivity("you in DMs"),
+		gateway.WithOnlineStatus(discord.OnlineStatusOnline),
+	); err != nil {
 		b.Logger.Errorf("Failed to set presence: %s", err)
 	}
 }

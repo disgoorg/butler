@@ -10,6 +10,7 @@ import (
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo-butler/db"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
 	"github.com/disgoorg/utils/paginator"
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -100,79 +101,79 @@ func TagsCommand(b *butler.Butler) handler.Command {
 	}
 }
 
-func createTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		data := ctx.SlashCommandInteractionData()
+func createTagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
-		if _, err := b.DB.Get(*ctx.GuildID(), name); err == nil {
-			return common.RespondErrMessage(ctx.Respond, "Tag already exists.")
+		if _, err := b.DB.Get(*e.GuildID(), name); err == nil {
+			return common.RespondErrMessage(e.Respond, "Tag already exists.")
 		} else if err != nil && err != sql.ErrNoRows {
-			return common.RespondMessageErr(ctx.Respond, "Failed to edit tag: %s", err)
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
 		}
 
-		if err := b.DB.Create(*ctx.GuildID(), ctx.User().ID, name, data.String("content")); err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to create tag: %s", err)
+		if err := b.DB.Create(*e.GuildID(), e.User().ID, name, data.String("content")); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to create tag: %s", err)
 		}
-		return common.Respond(ctx.Respond, "Tag created!")
+		return common.Respond(e.Respond, "Tag created!")
 	}
 }
 
-func editTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		data := ctx.SlashCommandInteractionData()
+func editTagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
-		tag, err := b.DB.Get(*ctx.GuildID(), name)
+		tag, err := b.DB.Get(*e.GuildID(), name)
 		if err == sql.ErrNoRows {
-			return common.RespondErrMessage(ctx.Respond, "Tag not found.")
+			return common.RespondErrMessage(e.Respond, "Tag not found.")
 		} else if err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to edit tag: %s", err)
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
 		}
-		if ctx.User().ID != tag.OwnerID && ctx.Member().Permissions.Missing(discord.PermissionManageServer) {
-			return common.RespondErrMessage(ctx.Respond, "You do not have permission to edit this tag.")
+		if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
+			return common.RespondErrMessage(e.Respond, "You do not have permission to edit this tag.")
 		}
 
-		if err = b.DB.Edit(*ctx.GuildID(), name, data.String("content")); err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to edit tag: %s", err)
+		if err = b.DB.Edit(*e.GuildID(), name, data.String("content")); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to edit tag: %s", err)
 		}
-		return common.Respond(ctx.Respond, "Tag edited.")
+		return common.Respond(e.Respond, "Tag edited.")
 	}
 }
 
-func deleteTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		data := ctx.SlashCommandInteractionData()
+func deleteTagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
-		tag, err := b.DB.Get(*ctx.GuildID(), name)
+		tag, err := b.DB.Get(*e.GuildID(), name)
 		if err == sql.ErrNoRows {
-			return common.RespondErrMessage(ctx.Respond, "Tag not found.")
+			return common.RespondErrMessage(e.Respond, "Tag not found.")
 		} else if err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to delete tag: %s", err)
+			return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
 		}
-		if ctx.User().ID != tag.OwnerID && ctx.Member().Permissions.Missing(discord.PermissionManageServer) {
-			return common.RespondErrMessage(ctx.Respond, "You do not have permission to delete this tag.")
+		if e.User().ID != tag.OwnerID && e.Member().Permissions.Missing(discord.PermissionManageServer) {
+			return common.RespondErrMessage(e.Respond, "You do not have permission to delete this tag.")
 		}
 
-		if err = b.DB.Delete(*ctx.GuildID(), name); err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to delete tag: %s", err)
+		if err = b.DB.Delete(*e.GuildID(), name); err != nil {
+			return common.RespondMessageErr(e.Respond, "Failed to delete tag: %s", err)
 		}
-		return common.Respond(ctx.Respond, "Tag deleted.")
+		return common.Respond(e.Respond, "Tag deleted.")
 	}
 }
 
-func infoTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		data := ctx.SlashCommandInteractionData()
+func infoTagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
-		tag, err := b.DB.Get(*ctx.GuildID(), name)
+		tag, err := b.DB.Get(*e.GuildID(), name)
 		if err == sql.ErrNoRows {
-			return common.Respondf(ctx.Respond, "Tag `%s` does not exist.", name)
+			return common.Respondf(e.Respond, "Tag `%s` does not exist.", name)
 		} else if err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to get tag info: ", err)
+			return common.RespondMessageErr(e.Respond, "Failed to get tag info: ", err)
 		}
-		return ctx.CreateMessage(discord.MessageCreate{
+		return e.CreateMessage(discord.MessageCreate{
 			Embeds: []discord.Embed{
 				{
 					Title:       fmt.Sprintf("Tag `%s`", name),
@@ -197,14 +198,14 @@ func infoTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
 	}
 }
 
-func listTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		tags, err := b.DB.GetAll(*ctx.GuildID())
+func listTagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		tags, err := b.DB.GetAll(*e.GuildID())
 		if err != nil {
-			return common.RespondMessageErr(ctx.Respond, "Failed to list tags: ", err)
+			return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
 		}
 		if len(tags) == 0 {
-			return common.Respond(ctx.Respond, "No tags found.")
+			return common.Respond(e.Respond, "No tags found.")
 		}
 
 		var pages []string
@@ -221,33 +222,33 @@ func listTagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
 			pages = append(pages, curPage)
 		}
 
-		return b.Paginator.Create(ctx.Respond, &paginator.Paginator{
+		return b.Paginator.Create(e.Respond, &paginator.Paginator{
 			PageFunc: func(page int, embed *discord.EmbedBuilder) {
 				embed.SetDescription(pages[page])
 			},
 			MaxPages:        len(pages),
 			ExpiryLastUsage: true,
-			ID:              ctx.ID().String(),
+			ID:              e.ID().String(),
 		})
 	}
 }
 
-func autoCompleteListTagHandler(b *butler.Butler, filterTags bool) func(ctx *handler.AutocompleteContext) error {
-	return func(ctx *handler.AutocompleteContext) error {
-		name := formatTagName(ctx.Data.String("name"))
+func autoCompleteListTagHandler(b *butler.Butler, filterTags bool) handler.AutocompleteHandler {
+	return func(e *events.AutocompleteInteractionCreate) error {
+		name := formatTagName(e.Data.String("name"))
 
 		var (
 			tags []db.Tag
 			err  error
 		)
-		if filterTags && ctx.Member().Permissions.Missing(discord.PermissionManageServer) {
-			tags, err = b.DB.GetAllUser(*ctx.GuildID(), ctx.User().ID)
+		if filterTags && e.Member().Permissions.Missing(discord.PermissionManageServer) {
+			tags, err = b.DB.GetAllUser(*e.GuildID(), e.User().ID)
 		} else {
-			tags, err = b.DB.GetAll(*ctx.GuildID())
+			tags, err = b.DB.GetAll(*e.GuildID())
 		}
 
 		if err != nil {
-			return ctx.Result(nil)
+			return e.Result(nil)
 		}
 		var response []discord.AutocompleteChoice
 
@@ -265,7 +266,7 @@ func autoCompleteListTagHandler(b *butler.Butler, filterTags bool) func(ctx *han
 				Value: option,
 			})
 		}
-		return ctx.Result(response)
+		return e.Result(response)
 	}
 }
 

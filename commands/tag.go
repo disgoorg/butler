@@ -6,6 +6,7 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
 )
 
@@ -33,15 +34,15 @@ func TagCommand(b *butler.Butler) handler.Command {
 	}
 }
 
-func tagHandler(b *butler.Butler) func(ctx *handler.CommandContext) error {
-	return func(ctx *handler.CommandContext) error {
-		tag, err := b.DB.GetAndIncrement(*ctx.GuildID(), ctx.SlashCommandInteractionData().String("name"))
+func tagHandler(b *butler.Butler) handler.CommandHandler {
+	return func(e *events.ApplicationCommandInteractionCreate) error {
+		tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
 		if err == sql.ErrNoRows {
-			return common.RespondErrMessage(ctx.Respond, "Tag not found")
+			return common.RespondErrMessage(e.Respond, "Tag not found")
 		} else if err != nil {
-			return common.RespondErr(ctx.Respond, err)
+			return common.RespondErr(e.Respond, err)
 		}
-		return ctx.CreateMessage(discord.MessageCreate{
+		return e.CreateMessage(discord.MessageCreate{
 			Content: tag.Content,
 		})
 	}

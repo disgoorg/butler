@@ -7,6 +7,7 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/handler"
 )
 
@@ -17,20 +18,20 @@ func DocsActionComponent(b *butler.Butler) handler.Component {
 	}
 }
 
-func handleDocsAction(b *butler.Butler) func(ctx *handler.ComponentContext) error {
-	return func(ctx *handler.ComponentContext) error {
-		action := ctx.SelectMenuInteractionData().Values[0]
+func handleDocsAction(b *butler.Butler) handler.ComponentHandler {
+	return func(e *events.ComponentInteractionCreate) error {
+		action := e.SelectMenuInteractionData().Values[0]
 		if action == "delete" {
-			if ctx.Message.Interaction.User.ID != ctx.User().ID && ctx.Member().Permissions.Missing(discord.PermissionManageMessages) {
-				return common.RespondErrMessage(ctx.Respond, "You don't have permission to delete this message.")
+			if e.Message.Interaction.User.ID != e.User().ID && e.Member().Permissions.Missing(discord.PermissionManageMessages) {
+				return common.RespondErrMessage(e.Respond, "You don't have permission to delete this message.")
 			}
-			_ = ctx.DeferUpdateMessage()
-			return ctx.Client().Rest().DeleteInteractionResponse(ctx.ApplicationID(), ctx.Token())
+			_ = e.DeferUpdateMessage()
+			return e.Client().Rest().DeleteInteractionResponse(e.ApplicationID(), e.Token())
 		}
-		values := strings.SplitN(ctx.Message.Embeds[0].Title, ": ", 2)
+		values := strings.SplitN(e.Message.Embeds[0].Title, ": ", 2)
 		pkg, err := b.DocClient.Search(context.Background(), values[0])
 		if err != nil {
-			return common.RespondErrMessagef(ctx.Respond, "Error while fetching package: %s", err)
+			return common.RespondErrMessagef(e.Respond, "Error while fetching package: %s", err)
 		}
 
 		var (
@@ -51,7 +52,7 @@ func handleDocsAction(b *butler.Butler) func(ctx *handler.ComponentContext) erro
 				expandExamples = true
 			}
 		} else if !strings.HasPrefix(action, "collapse:") {
-			return common.RespondErrMessagef(ctx.Respond, "Unknown action: %s", action)
+			return common.RespondErrMessagef(e.Respond, "Unknown action: %s", action)
 		}
 
 		var query string
@@ -59,9 +60,9 @@ func handleDocsAction(b *butler.Butler) func(ctx *handler.ComponentContext) erro
 			query = values[1]
 		}
 		embed, selectMenu := butler.GetDocsEmbed(pkg, query, expandSignature, expandComment, expandMethods, expandExamples)
-		if ctx.Message.Interaction.User.ID != ctx.User().ID && ctx.Member().Permissions.Missing(discord.PermissionManageMessages) {
-			return ctx.CreateMessage(discord.MessageCreate{Embeds: []discord.Embed{embed}, Flags: discord.MessageFlagEphemeral})
+		if e.Message.Interaction.User.ID != e.User().ID && e.Member().Permissions.Missing(discord.PermissionManageMessages) {
+			return e.CreateMessage(discord.MessageCreate{Embeds: []discord.Embed{embed}, Flags: discord.MessageFlagEphemeral})
 		}
-		return ctx.UpdateMessage(discord.MessageUpdate{Embeds: &[]discord.Embed{embed}, Components: &[]discord.ContainerComponent{discord.NewActionRow(selectMenu)}})
+		return e.UpdateMessage(discord.MessageUpdate{Embeds: &[]discord.Embed{embed}, Components: &[]discord.ContainerComponent{discord.NewActionRow(selectMenu)}})
 	}
 }
