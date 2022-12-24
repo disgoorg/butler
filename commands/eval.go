@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -74,7 +73,7 @@ func HandleEval(b *butler.Butler) handler.CommandHandler {
 		} else {
 			output = discord.Embed{
 				Title:       "Eval",
-				Description: fmt.Sprintf("%s", rs.GetOutput()),
+				Description: rs.GetOutput(),
 				Fields: []discord.EmbedField{
 					{
 						Name:  "Status",
