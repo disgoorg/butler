@@ -19,7 +19,7 @@ jobs:
               id: meta
               uses: docker/metadata-action@v4
               with:
-                  images: ghcr.io/topisenpai/disgo-butler
+                  images: ghcr.io/disgoorg/disgo-butler
                   tags: |
                       type=ref,event=branch
                       type=ref,event=tag
