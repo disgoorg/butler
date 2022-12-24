@@ -5,11 +5,11 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo/discord"
-	"golang.org/x/exp/slices"
 )
 
 //go:embed templates/*
@@ -45,12 +45,6 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			return
 		}
 
-		member, err := b.OAuth2.GetMember(session, b.Config.GuildID)
-		if err != nil {
-			httpError(w, err)
-			return
-		}
-
 		var conn *discord.Connection
 		for _, connection := range connections {
 			if connection.Type == discord.ConnectionTypeGitHub {
@@ -67,11 +61,8 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			return
 		}
 
-		var (
-			roleIDs = member.RoleIDs
-			repos   []string
-		)
-		for repo, roleID := range b.Config.ContributorRepos {
+		metadata := make(map[string]string)
+		for _, repo := range b.Config.ContributorRepos {
 			values := strings.SplitN(repo, "/", 2)
 			contributors, _, err := b.GitHubClient.Repositories.ListContributors(context.TODO(), values[0], values[1], nil)
 			if err != nil {
@@ -81,36 +72,27 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			for _, contributor := range contributors {
 				if contributor.GetLogin() == conn.Name {
 					// need at least 10 contributions
-					if contributor.Contributions != nil && *contributor.Contributions < 10 {
-						continue
+					contributions := 0
+					if contributor.Contributions != nil {
+						contributions = *contributor.Contributions
 					}
-					if !slices.Contains(roleIDs, roleID) {
-						roleIDs = append(roleIDs, roleID)
-					}
-					repos = append(repos, repo)
+					metadata[repo] = strconv.Itoa(contributions)
 					break
 				}
 			}
 
 		}
-		if len(roleIDs) == 0 {
-			if err = t.ExecuteTemplate(w, "error.html", map[string]any{
-				"Error": "You don't seem to be a contributor of any DisGo repositories",
-			}); err != nil {
-				httpError(w, err)
-			}
-			return
-		}
 
-		if _, err = b.Client.Rest().UpdateMember(b.Config.GuildID, member.User.ID, discord.MemberUpdate{
-			Roles: &roleIDs,
+		if _, err = b.OAuth2.UpdateApplicationRoleConnection(session, b.Client.ApplicationID(), discord.ApplicationRoleConnectionUpdate{
+			PlatformName: &conn.Name,
+			Metadata:     &metadata,
 		}); err != nil {
 			httpError(w, err)
 			return
 		}
 
 		if err = t.ExecuteTemplate(w, "response.html", map[string]any{
-			"Repos": repos,
+			"Repos": b.Config.ContributorRepos,
 		}); err != nil {
 			httpError(w, err)
 		}

@@ -9,7 +9,7 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/snowflake/v2"
+	"golang.org/x/exp/slices"
 )
 
 var configCommand = discord.SlashCommandCreate{
@@ -106,11 +106,6 @@ var configCommand = discord.SlashCommandCreate{
 						discord.ApplicationCommandOptionString{
 							Name:        "name",
 							Description: "The name of the contributor repository.",
-							Required:    true,
-						},
-						discord.ApplicationCommandOptionRole{
-							Name:        "role",
-							Description: "The role to assign if a user is a contributor.",
 							Required:    true,
 						},
 					},
@@ -237,13 +232,8 @@ func HandleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
 	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
-		roleID := data.Snowflake("role")
 
-		if b.Config.ContributorRepos == nil {
-			b.Config.ContributorRepos = map[string]snowflake.ID{}
-		}
-
-		b.Config.ContributorRepos[name] = roleID
+		b.Config.ContributorRepos = append(b.Config.ContributorRepos, name)
 		if err := butler.SaveConfig(b.Config); err != nil {
 			return common.RespondErr(e.Respond, err)
 		}
@@ -256,11 +246,13 @@ func HandleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
-		if _, ok := b.Config.ContributorRepos[name]; !ok {
+		i := slices.Index(b.Config.ContributorRepos, name)
+
+		if i == -1 {
 			return common.RespondErrMessagef(e.Respond, "contributor repository `%s` does not exist", name)
 		}
 
-		delete(b.Config.ContributorRepos, name)
+		b.Config.ContributorRepos = append(b.Config.ContributorRepos[:i], b.Config.ContributorRepos[i+1:]...)
 		if err := butler.SaveConfig(b.Config); err != nil {
 			return common.RespondErr(e.Respond, err)
 		}
@@ -271,8 +263,8 @@ func HandleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
 func HandleContributorReposList(b *butler.Butler) handler.CommandHandler {
 	return func(client bot.Client, e *handler.CommandEvent) error {
 		var message string
-		for name, roleID := range b.Config.ContributorRepos {
-			message += fmt.Sprintf("•`%s` -> %s\n", name, discord.RoleMention(roleID))
+		for _, name := range b.Config.ContributorRepos {
+			message += fmt.Sprintf("•`%s`\n", name)
 		}
 		return common.Respondf(e.Respond, "Repositories:\n%s", message)
 	}
