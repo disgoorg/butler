@@ -15,12 +15,14 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/disgo/httpserver"
 	"github.com/disgoorg/disgo/oauth2"
 	"github.com/disgoorg/disgo/webhook"
-	"github.com/disgoorg/handler"
 	"github.com/disgoorg/log"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/disgoorg/utils/paginator"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/go-github/v44/github"
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
@@ -29,7 +31,6 @@ import (
 
 func New(logger log.Logger, version string, config Config) *Butler {
 	return &Butler{
-		Handler:      handler.New(logger),
 		PistonClient: gopiston.CreateDefaultClient(),
 		Config:       config,
 		Logger:       logger,
@@ -40,7 +41,6 @@ func New(logger log.Logger, version string, config Config) *Butler {
 }
 
 type Butler struct {
-	Handler      *handler.Handler
 	Client       bot.Client
 	OAuth2       oauth2.Client
 	PistonClient *gopiston.Client
@@ -56,12 +56,12 @@ type Butler struct {
 	Version      string
 }
 
-func (b *Butler) SetupRoutes(routes http.Handler) {
+func (b *Butler) SetupRoutes(router chi.Router) {
 	b.Mux = http.NewServeMux()
-	b.Mux.Handle("/", routes)
+	b.Mux.Handle("/", router)
 }
 
-func (b *Butler) SetupBot() {
+func (b *Butler) SetupBot(r handler.Router) {
 	b.ModMail = mod_mail.New(b.Config.ModMail)
 	var err error
 	if b.Client, err = disgo.New(b.Config.Token,
@@ -73,9 +73,9 @@ func (b *Butler) SetupBot() {
 				gateway.WithOnlineStatus(discord.OnlineStatusDND),
 			),
 		),
-		bot.WithCacheConfigOpts(cache.WithCacheFlags(cache.FlagGuilds)),
+		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagGuilds)),
 		bot.WithEventListenerFunc(b.OnReady),
-		bot.WithEventListeners(b.Handler, b.Paginator, b.ModMail),
+		bot.WithEventListeners(r, b.Paginator, b.ModMail),
 		bot.WithHTTPServerConfigOpts(b.Config.Interactions.PublicKey,
 			httpserver.WithServeMux(b.Mux),
 			httpserver.WithAddress(b.Config.Interactions.Address),
@@ -100,6 +100,20 @@ func (b *Butler) SetupBot() {
 			}
 		}
 	}()
+}
+
+func (b *Butler) SyncCommands(commands []discord.ApplicationCommandCreate, guildIDs ...snowflake.ID) {
+	if len(guildIDs) == 0 {
+		if _, err := b.Client.Rest().SetGlobalCommands(b.Client.ApplicationID(), commands); err != nil {
+			b.Logger.Errorf("Failed to sync commands: %s", err)
+		}
+		return
+	}
+	for _, guildID := range guildIDs {
+		if _, err := b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), guildID, commands); err != nil {
+			b.Logger.Errorf("Failed to sync commands: %s", err)
+		}
+	}
 }
 
 func (b *Butler) SetupDB(shouldSyncDBTables bool) {

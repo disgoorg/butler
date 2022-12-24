@@ -51,38 +51,38 @@ func GetDocsEmbed(pkg doc.Package, query string, expandSignature bool, expandCom
 		embed.Description = embed.Description[:4095] + "…"
 	}
 
-	var options []discord.SelectMenuOption
+	var options []discord.StringSelectMenuOption
 	if moreSignature {
-		options = append(options, discord.NewSelectMenuOption("expand signature", "expand:signature").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
+		options = append(options, discord.NewStringSelectMenuOption("expand signature", "expand:signature").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
 	if expandSignature {
-		options = append(options, discord.NewSelectMenuOption("collapse signature", "collapse:signature").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+		options = append(options, discord.NewStringSelectMenuOption("collapse signature", "collapse:signature").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
 	}
 
 	if moreMethods {
-		options = append(options, discord.NewSelectMenuOption("expand methods", "expand:methods").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
+		options = append(options, discord.NewStringSelectMenuOption("expand methods", "expand:methods").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
 	if expandMethods {
-		options = append(options, discord.NewSelectMenuOption("collapse methods", "collapse:methods").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+		options = append(options, discord.NewStringSelectMenuOption("collapse methods", "collapse:methods").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
 	}
 
 	if moreComment {
-		options = append(options, discord.NewSelectMenuOption("expand comment", "expand:comment").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
+		options = append(options, discord.NewStringSelectMenuOption("expand comment", "expand:comment").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
 	if expandComment {
-		options = append(options, discord.NewSelectMenuOption("collapse comment", "collapse:comment").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+		options = append(options, discord.NewStringSelectMenuOption("collapse comment", "collapse:comment").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
 	}
 
 	if moreExamples {
-		options = append(options, discord.NewSelectMenuOption("expand examples", "expand:examples").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
+		options = append(options, discord.NewStringSelectMenuOption("expand examples", "expand:examples").WithEmoji(discord.ComponentEmoji{Name: "🔼"}))
 	}
 	if expandExamples {
-		options = append(options, discord.NewSelectMenuOption("collapse examples", "collapse:examples").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
+		options = append(options, discord.NewStringSelectMenuOption("collapse examples", "collapse:examples").WithEmoji(discord.ComponentEmoji{Name: "🔽"}))
 	}
 
-	options = append(options, discord.NewSelectMenuOption("delete", "delete").WithEmoji(discord.ComponentEmoji{Name: "❌"}))
+	options = append(options, discord.NewStringSelectMenuOption("delete", "delete").WithEmoji(discord.ComponentEmoji{Name: "❌"}))
 
-	return embed, discord.NewSelectMenu("docs_action", "action", options...)
+	return embed, discord.NewStringSelectMenu("docs_action", "action", options...)
 }
 
 func EmbedFromPackage(pkg doc.Package, expandComment bool, expandExamples bool) (discord.Embed, bool, bool) {

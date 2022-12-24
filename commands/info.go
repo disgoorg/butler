@@ -4,26 +4,19 @@ import (
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func InfoCommand(b *butler.Butler) handler.Command {
-	return handler.Command{
-		Create: discord.SlashCommandCreate{
-			Name:        "info",
-			Description: "Provides information about disgo",
-		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"": handleInfo(b),
-		},
-	}
+var infoCommand = discord.SlashCommandCreate{
+	Name:        "info",
+	Description: "Provides information about disgo",
 }
 
-func handleInfo(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
-		user, _ := b.Client.Caches().GetSelfUser()
+func HandleInfo(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
+		user, _ := b.Client.Caches().SelfUser()
 		return e.CreateMessage(discord.NewMessageCreateBuilder().
 			SetEmbeds(discord.NewEmbedBuilder().
 				SetTitle("DisGo Butler").

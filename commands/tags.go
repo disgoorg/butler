@@ -9,100 +9,83 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo-butler/db"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/utils/paginator"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
-func TagsCommand(b *butler.Butler) handler.Command {
-	return handler.Command{
-		Create: discord.SlashCommandCreate{
-			Name:        "tags",
-			Description: "let's you create/delete/edit tags",
+var tagsCommand = discord.SlashCommandCreate{
+	Name:        "tags",
+	Description: "let's you create/delete/edit tags",
+	Options: []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "create",
+			Description: "let's you create a tag",
 			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "create",
-					Description: "let's you create a tag",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:        "name",
-							Description: "the name of the tag to create",
-							Required:    true,
-						},
-						discord.ApplicationCommandOptionString{
-							Name:        "content",
-							Description: "the content of the new tag",
-							Required:    true,
-						},
-					},
+				discord.ApplicationCommandOptionString{
+					Name:        "name",
+					Description: "the name of the tag to create",
+					Required:    true,
 				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "delete",
-					Description: "let's you delete a tag",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:         "name",
-							Description:  "the name of the tag to delete",
-							Required:     true,
-							Autocomplete: true,
-						},
-					},
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "edit",
-					Description: "let's you edit a tag",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:         "name",
-							Description:  "the name of the tag to edit",
-							Required:     true,
-							Autocomplete: true,
-						},
-						discord.ApplicationCommandOptionString{
-							Name:        "content",
-							Description: "the new content of the new tag",
-							Required:    true,
-						},
-					},
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "info",
-					Description: "lets you view a tag's info",
-					Options: []discord.ApplicationCommandOption{
-						discord.ApplicationCommandOptionString{
-							Name:         "name",
-							Description:  "the name of the tag to view",
-							Required:     true,
-							Autocomplete: true,
-						},
-					},
-				},
-				discord.ApplicationCommandOptionSubCommand{
-					Name:        "list",
-					Description: "lists all tags",
+				discord.ApplicationCommandOptionString{
+					Name:        "content",
+					Description: "the content of the new tag",
+					Required:    true,
 				},
 			},
 		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"create": createTagHandler(b),
-			"edit":   editTagHandler(b),
-			"delete": deleteTagHandler(b),
-			"info":   infoTagHandler(b),
-			"list":   listTagHandler(b),
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "delete",
+			Description: "let's you delete a tag",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					Name:         "name",
+					Description:  "the name of the tag to delete",
+					Required:     true,
+					Autocomplete: true,
+				},
+			},
 		},
-		AutocompleteHandlers: map[string]handler.AutocompleteHandler{
-			"edit":   autoCompleteListTagHandler(b, true),
-			"delete": autoCompleteListTagHandler(b, true),
-			"list":   autoCompleteListTagHandler(b, false),
-			"info":   autoCompleteListTagHandler(b, false),
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "edit",
+			Description: "let's you edit a tag",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					Name:         "name",
+					Description:  "the name of the tag to edit",
+					Required:     true,
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:        "content",
+					Description: "the new content of the new tag",
+					Required:    true,
+				},
+			},
 		},
-	}
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "info",
+			Description: "lets you view a tag's info",
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					Name:         "name",
+					Description:  "the name of the tag to view",
+					Required:     true,
+					Autocomplete: true,
+				},
+			},
+		},
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "list",
+			Description: "lists all tags",
+		},
+	},
 }
 
-func createTagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleCreateTag(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -119,8 +102,8 @@ func createTagHandler(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func editTagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleEditTag(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -141,8 +124,8 @@ func editTagHandler(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func deleteTagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleDeleteTag(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -163,8 +146,8 @@ func deleteTagHandler(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func infoTagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleTagInfo(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 		tag, err := b.DB.Get(*e.GuildID(), name)
@@ -198,8 +181,8 @@ func infoTagHandler(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func listTagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleListTags(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		tags, err := b.DB.GetAll(*e.GuildID())
 		if err != nil {
 			return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
@@ -233,8 +216,8 @@ func listTagHandler(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func autoCompleteListTagHandler(b *butler.Butler, filterTags bool) handler.AutocompleteHandler {
-	return func(e *events.AutocompleteInteractionCreate) error {
+func HandleTagListAutoComplete(b *butler.Butler, filterTags bool) handler.AutocompleteHandler {
+	return func(client bot.Client, e *handler.AutocompleteEvent) error {
 		name := formatTagName(e.Data.String("name"))
 
 		var (

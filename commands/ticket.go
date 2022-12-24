@@ -3,27 +3,20 @@ package commands
 import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/disgo/json"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/json"
 )
 
-func TicketCommand(b *butler.Butler) handler.Command {
-	return handler.Command{
-		Create: discord.SlashCommandCreate{
-			Name:         "close-ticket",
-			Description:  "Closes the current ticket.",
-			DMPermission: json.NewPtr(true),
-		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"": modMailHandler(b),
-		},
-	}
+var ticketCommand = discord.SlashCommandCreate{
+	Name:         "close-ticket",
+	Description:  "Closes the current ticket.",
+	DMPermission: json.Ptr(true),
 }
 
-func modMailHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleCloseTicket(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		b.ModMail.Mu.Lock()
 		defer b.ModMail.Mu.Unlock()
 
@@ -32,8 +25,8 @@ func modMailHandler(b *butler.Butler) handler.CommandHandler {
 			if !ok {
 				return common.RespondErrMessage(e.Respond, "No ticket found for this thread.")
 			}
-			delete(b.ModMail.ThreadDMs, e.ChannelID())
-			delete(b.ModMail.DMThreads, dmID)
+			delete(b.ModMail.ThreadDMs, threadID)
+			delete(b.ModMail.DMThreads, e.ChannelID())
 		}
 
 		dmID, ok := b.ModMail.ThreadDMs[e.ChannelID()]
@@ -70,7 +63,7 @@ func modMailHandler(b *butler.Butler) handler.CommandHandler {
 		}
 
 		_, err := e.Client().Rest().UpdateChannel(e.ChannelID(), discord.GuildThreadUpdate{
-			Archived: json.NewPtr(true),
+			Archived: json.Ptr(true),
 		})
 		return err
 	}

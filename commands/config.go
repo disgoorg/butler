@@ -6,153 +6,137 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
 )
 
-func ConfigCommand(b *butler.Butler) handler.Command {
-	return handler.Command{
-
-		Create: discord.SlashCommandCreate{
-			Name:        "config",
-			Description: "Used to configure aliases and release announcements.",
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionSubCommandGroup{
-					Name:        "aliases",
-					Description: "Used to configure module aliases.",
-					Options: []discord.ApplicationCommandOptionSubCommand{
-						{
-							Name:        "add",
-							Description: "Used to add a module alias.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "module",
-									Description: "The module you want to add an alias for.",
-									Required:    true,
-								},
-								discord.ApplicationCommandOptionString{
-									Name:        "alias",
-									Description: "The alias you want to add for the module.",
-									Required:    true,
-								},
-							},
+var configCommand = discord.SlashCommandCreate{
+	Name:        "config",
+	Description: "Used to configure aliases and release announcements.",
+	Options: []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "aliases",
+			Description: "Used to configure module aliases.",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "add",
+					Description: "Used to add a module alias.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "module",
+							Description: "The module you want to add an alias for.",
+							Required:    true,
 						},
-						{
-							Name:        "remove",
-							Description: "Used to remove a module alias.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "alias",
-									Description: "The alias you want to add for the module.",
-									Required:    true,
-								},
-							},
-						},
-						{
-							Name:        "list",
-							Description: "Used to list all module aliases.",
+						discord.ApplicationCommandOptionString{
+							Name:        "alias",
+							Description: "The alias you want to add for the module.",
+							Required:    true,
 						},
 					},
 				},
-				discord.ApplicationCommandOptionSubCommandGroup{
-					Name:        "releases",
-					Description: "Used to configure release announcements.",
-					Options: []discord.ApplicationCommandOptionSubCommand{
-						{
-							Name:        "add",
-							Description: "Used to add a release announcement.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "name",
-									Description: "The name of the release announcement.",
-									Required:    true,
-								},
-								discord.ApplicationCommandOptionChannel{
-									Name:        "channel",
-									Description: "The channel to release the announcement in.",
-									Required:    true,
-								},
-								discord.ApplicationCommandOptionRole{
-									Name:        "ping-role",
-									Description: "The role you want to ping when a new release is available.",
-									Required:    true,
-								},
-							},
-						},
-						{
-							Name:        "remove",
-							Description: "Used to remove a release announcement.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "name",
-									Description: "The release announcement you want to remove.",
-									Required:    true,
-								},
-							},
-						},
-						{
-							Name:        "list",
-							Description: "Used to list all release announcements.",
+				{
+					Name:        "remove",
+					Description: "Used to remove a module alias.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "alias",
+							Description: "The alias you want to add for the module.",
+							Required:    true,
 						},
 					},
 				},
-				discord.ApplicationCommandOptionSubCommandGroup{
-					Name:        "contributor-repos",
-					Description: "Used to configure contributor repositories.",
-					Options: []discord.ApplicationCommandOptionSubCommand{
-						{
-							Name:        "add",
-							Description: "Used to add a contributor repositories.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "name",
-									Description: "The name of the contributor repository.",
-									Required:    true,
-								},
-								discord.ApplicationCommandOptionRole{
-									Name:        "role",
-									Description: "The role to assign if a user is a contributor.",
-									Required:    true,
-								},
-							},
-						},
-						{
-							Name:        "remove",
-							Description: "Used to remove a contributor repositories.",
-							Options: []discord.ApplicationCommandOption{
-								discord.ApplicationCommandOptionString{
-									Name:        "name",
-									Description: "The contributor repository you want to remove.",
-									Required:    true,
-								},
-							},
-						},
-						{
-							Name:        "list",
-							Description: "Used to list all contributor repositories.",
-						},
-					},
+				{
+					Name:        "list",
+					Description: "Used to list all module aliases.",
 				},
 			},
 		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"aliases/add":              handleAliasesAdd(b),
-			"aliases/remove":           handleAliasesRemove(b),
-			"aliases/list":             handleAliasesList(b),
-			"releases/add":             handleReleasesAdd(b),
-			"releases/remove":          handleReleasesRemove(b),
-			"releases/list":            handleReleasesList(b),
-			"contributor-repos/add":    handleContributorReposAdd(b),
-			"contributor-repos/remove": handleContributorReposRemove(b),
-			"contributor-repos/list":   handleContributorReposList(b),
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "releases",
+			Description: "Used to configure release announcements.",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "add",
+					Description: "Used to add a release announcement.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "The name of the release announcement.",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionChannel{
+							Name:        "channel",
+							Description: "The channel to release the announcement in.",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionRole{
+							Name:        "ping-role",
+							Description: "The role you want to ping when a new release is available.",
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "remove",
+					Description: "Used to remove a release announcement.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "The release announcement you want to remove.",
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "list",
+					Description: "Used to list all release announcements.",
+				},
+			},
 		},
-	}
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "contributor-repos",
+			Description: "Used to configure contributor repositories.",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "add",
+					Description: "Used to add a contributor repositories.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "The name of the contributor repository.",
+							Required:    true,
+						},
+						discord.ApplicationCommandOptionRole{
+							Name:        "role",
+							Description: "The role to assign if a user is a contributor.",
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "remove",
+					Description: "Used to remove a contributor repositories.",
+					Options: []discord.ApplicationCommandOption{
+						discord.ApplicationCommandOptionString{
+							Name:        "name",
+							Description: "The contributor repository you want to remove.",
+							Required:    true,
+						},
+					},
+				},
+				{
+					Name:        "list",
+					Description: "Used to list all contributor repositories.",
+				},
+			},
+		},
+	},
 }
 
-func handleAliasesAdd(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleAliasesAdd(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		module := data.String("module")
 		alias := data.String("alias")
@@ -167,8 +151,8 @@ func handleAliasesAdd(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleAliasesRemove(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleAliasesRemove(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		alias := data.String("alias")
 
@@ -184,8 +168,8 @@ func handleAliasesRemove(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleAliasesList(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleAliasesList(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		var message string
 		for alias, module := range b.Config.Docs.Aliases {
 			message += fmt.Sprintf("•`%s` -> `%s`\n", alias, module)
@@ -194,8 +178,8 @@ func handleAliasesList(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleReleasesAdd(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleReleasesAdd(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 		channelID := data.Snowflake("channel")
@@ -222,8 +206,8 @@ func handleReleasesAdd(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleReleasesRemove(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleReleasesRemove(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
@@ -239,8 +223,8 @@ func handleReleasesRemove(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleReleasesList(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleReleasesList(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		var message string
 		for name := range b.Config.GithubReleases {
 			message += fmt.Sprintf("•`%s`\n", name)
@@ -249,8 +233,8 @@ func handleReleasesList(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 		roleID := data.Snowflake("role")
@@ -267,8 +251,8 @@ func handleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
@@ -284,8 +268,8 @@ func handleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
 	}
 }
 
-func handleContributorReposList(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleContributorReposList(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		var message string
 		for name, roleID := range b.Config.ContributorRepos {
 			message += fmt.Sprintf("•`%s` -> %s\n", name, discord.RoleMention(roleID))

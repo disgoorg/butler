@@ -4,23 +4,18 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/disgo/rest"
-	"github.com/disgoorg/handler"
 )
 
-var PingCommand = handler.Command{
-	Create: discord.SlashCommandCreate{
-		Name:        "ping",
-		Description: "Responds with pong",
-	},
-	CommandHandlers: map[string]handler.CommandHandler{
-		"": handlePing,
-	},
+var pingCommand = discord.SlashCommandCreate{
+	Name:        "ping",
+	Description: "Responds with pong",
 }
 
-func handlePing(e *events.ApplicationCommandInteractionCreate) error {
+func HandlePing(client bot.Client, e *handler.CommandEvent) error {
 	var gatewayPing string
 	if e.Client().HasGateway() {
 		gatewayPing = e.Client().Gateway().Latency().String()

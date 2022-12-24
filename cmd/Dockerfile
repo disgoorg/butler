@@ -1,8 +1,8 @@
-FROM golang:1.18-alpine AS build
+FROM golang:1.19-alpine AS build
 
 ARG VERSION=dev
 
-WORKDIR /tmp/app
+WORKDIR /build
 
 COPY go.mod go.sum ./
 
@@ -10,10 +10,10 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-X 'main.version=${VERSION}'-w -s" -o disgo-butler cmd/main.go
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o bot cmd/main.go
 
 FROM alpine
 
-COPY --from=build /tmp/app/disgo-butler /bin/disgo-butler
+COPY --from=build /build/bot /bin/bot
 
-ENTRYPOINT ["/bin/disgo-butler"]
+ENTRYPOINT ["/bin/bot"]

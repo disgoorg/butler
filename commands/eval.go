@@ -7,27 +7,20 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
 	gopiston "github.com/milindmadhukar/go-piston"
 )
 
 var discordCodeblockRegex = regexp.MustCompile(`(?s)\x60\x60\x60(?P<language>\w+)\n(?P<code>.+)\x60\x60\x60`)
 
-func Eval(b *butler.Butler) handler.Command {
-	return handler.Command{
-		Create: discord.MessageCommandCreate{
-			Name: "eval",
-		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"": handleEval(b),
-		},
-	}
+var evalCommand = discord.MessageCommandCreate{
+	Name: "eval",
 }
 
-func handleEval(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleEval(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		runtimes, err := b.PistonClient.GetRuntimes()
 		if err != nil {
 			return common.RespondErr(e.Respond, err)

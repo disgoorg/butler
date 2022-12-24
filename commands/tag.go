@@ -5,37 +5,27 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/handler"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func TagCommand(b *butler.Butler) handler.Command {
-	return handler.Command{
-		Create: discord.SlashCommandCreate{
-			Name:        "tag",
-			Description: "Let's you display a tag",
-			Options: []discord.ApplicationCommandOption{
+var tagCommand = discord.SlashCommandCreate{
+	Name:        "tag",
+	Description: "Let's you display a tag",
+	Options: []discord.ApplicationCommandOption{
 
-				discord.ApplicationCommandOptionString{
-					Name:         "name",
-					Description:  "The name of the tag to display",
-					Required:     true,
-					Autocomplete: true,
-				},
-			},
+		discord.ApplicationCommandOptionString{
+			Name:         "name",
+			Description:  "The name of the tag to display",
+			Required:     true,
+			Autocomplete: true,
 		},
-		CommandHandlers: map[string]handler.CommandHandler{
-			"": tagHandler(b),
-		},
-		AutocompleteHandlers: map[string]handler.AutocompleteHandler{
-			"": autoCompleteListTagHandler(b, false),
-		},
-	}
+	},
 }
 
-func tagHandler(b *butler.Butler) handler.CommandHandler {
-	return func(e *events.ApplicationCommandInteractionCreate) error {
+func HandleTag(b *butler.Butler) handler.CommandHandler {
+	return func(client bot.Client, e *handler.CommandEvent) error {
 		tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
 		if err == sql.ErrNoRows {
 			return common.RespondErrMessage(e.Respond, "Tag not found")
