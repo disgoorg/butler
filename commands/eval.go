@@ -28,6 +28,9 @@ func HandleEval(b *butler.Butler) handler.CommandHandler {
 		data := e.MessageCommandInteractionData()
 
 		matches := discordCodeblockRegex.FindStringSubmatch(data.TargetMessage().Content)
+		if len(matches) == 0 {
+			return common.RespondErrMessagef(e.Respond, "no codeblock found")
+		}
 		rawLanguage := matches[discordCodeblockRegex.SubexpIndex("language")]
 		code := matches[discordCodeblockRegex.SubexpIndex("code")]
 
