@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/json"
+	"github.com/disgoorg/snowflake/v2"
 	gopiston "github.com/milindmadhukar/go-piston"
 )
 
@@ -20,79 +23,103 @@ var evalCommand = discord.MessageCommandCreate{
 
 func HandleEval(b *butler.Butler) handler.CommandHandler {
 	return func(client bot.Client, e *handler.CommandEvent) error {
-		runtimes, err := b.PistonClient.GetRuntimes()
-		if err != nil {
-			return common.RespondErr(e.Respond, err)
+		message := e.MessageCommandInteractionData().TargetMessage()
+		return Eval(b, client, e.BaseInteraction, e.Respond, message.Content, message.ID, false)
+	}
+}
+
+func Eval(b *butler.Butler, client bot.Client, i discord.BaseInteraction, r events.InteractionResponderFunc, content string, messageID snowflake.ID, update bool) error {
+	runtimes, err := b.PistonClient.GetRuntimes()
+	if err != nil {
+		return common.RespondErr(r, err)
+	}
+
+	matches := discordCodeblockRegex.FindStringSubmatch(content)
+	if len(matches) == 0 {
+		return common.RespondErrMessagef(r, "no codeblock found")
+	}
+	rawLanguage := matches[discordCodeblockRegex.SubexpIndex("language")]
+	code := matches[discordCodeblockRegex.SubexpIndex("code")]
+
+	var language string
+runtimeLoop:
+	for _, runtime := range *runtimes {
+		if strings.EqualFold(runtime.Language, rawLanguage) {
+			language = runtime.Language
+			break
 		}
-
-		data := e.MessageCommandInteractionData()
-
-		matches := discordCodeblockRegex.FindStringSubmatch(data.TargetMessage().Content)
-		if len(matches) == 0 {
-			return common.RespondErrMessagef(e.Respond, "no codeblock found")
-		}
-		rawLanguage := matches[discordCodeblockRegex.SubexpIndex("language")]
-		code := matches[discordCodeblockRegex.SubexpIndex("code")]
-
-		var language string
-	runtimeLoop:
-		for _, runtime := range *runtimes {
-			if strings.EqualFold(runtime.Language, rawLanguage) {
+		for _, alias := range runtime.Aliases {
+			if strings.EqualFold(alias, rawLanguage) {
 				language = runtime.Language
-				break
-			}
-			for _, alias := range runtime.Aliases {
-				if strings.EqualFold(alias, rawLanguage) {
-					language = runtime.Language
-					break runtimeLoop
-				}
+				break runtimeLoop
 			}
 		}
-		if language == "" {
-			return common.RespondErrMessagef(e.Respond, "Language %s is not supported", rawLanguage)
-		}
+	}
+	if language == "" {
+		return common.RespondErrMessagef(r, "Language %s is not supported", rawLanguage)
+	}
 
-		if err = e.DeferCreateMessage(false); err != nil {
+	if update {
+		if err = r(discord.InteractionResponseTypeUpdateMessage, discord.MessageUpdate{
+			Content:    json.Ptr("Running..."),
+			Embeds:     &[]discord.Embed{},
+			Components: &[]discord.ContainerComponent{},
+		}); err != nil {
 			return err
 		}
-
-		rs, err := b.PistonClient.Execute(language, "", []gopiston.Code{{Content: code}})
-		var output discord.Embed
-		if err != nil {
-			output = discord.Embed{
-				Title:       "Eval",
-				Description: err.Error(),
-				Fields: []discord.EmbedField{
-					{
-						Name:  "Status",
-						Value: "Error",
-					},
-					{
-						Name:  "Duration",
-						Value: "0s",
-					},
-				},
-			}
-		} else {
-			output = discord.Embed{
-				Title:       "Eval",
-				Description: rs.GetOutput(),
-				Fields: []discord.EmbedField{
-					{
-						Name:  "Status",
-						Value: "Success",
-					},
-					{
-						Name:  "Duration",
-						Value: "0s",
-					},
-				},
-			}
+	} else {
+		if err = r(discord.InteractionResponseTypeDeferredCreateMessage, nil); err != nil {
+			return err
 		}
-
-		_, err = e.Client().Rest().UpdateInteractionResponse(e.ApplicationID(), e.Token(), discord.MessageUpdate{
-			Embeds: &[]discord.Embed{output},
-		})
-		return err
 	}
+
+	rs, err := b.PistonClient.Execute(language, "", []gopiston.Code{{Content: code}})
+	var output discord.Embed
+	if err != nil {
+		output = discord.Embed{
+			Title:       "Eval",
+			Description: "```\n" + err.Error() + "\n```",
+			Fields: []discord.EmbedField{
+				{
+					Name:  "Status",
+					Value: "Error",
+				},
+				{
+					Name:  "Duration",
+					Value: "0s",
+				},
+			},
+		}
+	} else {
+		output = discord.Embed{
+			Title:       "Eval",
+			Description: "```\n" + rs.GetOutput() + "\n```",
+			Fields: []discord.EmbedField{
+				{
+					Name:  "Status",
+					Value: "Success",
+				},
+				{
+					Name:  "Duration",
+					Value: "0s",
+				},
+			},
+		}
+	}
+
+	_, err = client.Rest().UpdateInteractionResponse(i.ApplicationID(), i.Token(), discord.MessageUpdate{
+		Content: json.Ptr(""),
+		Embeds:  &[]discord.Embed{output},
+		Components: &[]discord.ContainerComponent{
+			discord.ActionRowComponent{
+				discord.NewPrimaryButton("", "eval/rerun/"+messageID.String()).WithEmoji(discord.ComponentEmoji{
+					Name: "🔁",
+				}),
+				discord.NewDangerButton("", "eval/delete").WithEmoji(discord.ComponentEmoji{
+					Name: "🗑️",
+				}),
+			},
+		},
+	})
+	return err
 }
