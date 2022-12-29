@@ -67,7 +67,7 @@ type (
 		GithubWebhookSecret string                         `json:"github_webhook_secret"`
 		GithubReleases      map[string]GithubReleaseConfig `json:"github_releases"`
 		Interactions        InteractionsConfig             `json:"interactions"`
-		ContributorRepos    map[string]snowflake.ID        `json:"contributor_repos"`
+		ContributorRepos    []string                       `json:"contributor_repos"`
 		ModMail             mod_mail.Config                `json:"mod_mail"`
 	}
 

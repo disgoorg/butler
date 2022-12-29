@@ -92,6 +92,7 @@ func main() {
 	cr.HandleCommand("/close-ticket", commands.HandleCloseTicket(b))
 	b.SetupBot(cr)
 	b.SetupDB(*shouldSyncDBTables)
+	b.RegisterLinkedRoles()
 
 	if *shouldSyncCommands {
 		var guildIDs []snowflake.ID

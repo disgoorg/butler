@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/disgoorg/disgo"
@@ -113,6 +114,22 @@ func (b *Butler) SyncCommands(commands []discord.ApplicationCommandCreate, guild
 		if _, err := b.Client.Rest().SetGuildCommands(b.Client.ApplicationID(), guildID, commands); err != nil {
 			b.Logger.Errorf("Failed to sync commands: %s", err)
 		}
+	}
+}
+
+func (b *Butler) RegisterLinkedRoles() {
+	var linkedRoles []discord.ApplicationRoleConnectionMetadata
+	for _, repo := range b.Config.ContributorRepos {
+		linkedRoles = append(linkedRoles, discord.ApplicationRoleConnectionMetadata{
+			Type:        discord.ApplicationRoleConnectionMetadataTypeIntegerGreaterThanOrEqual,
+			Key:         strings.ReplaceAll(repo, "/", "_") + "_contributions",
+			Name:        "Contributions to " + repo,
+			Description: "The amount of contributions you have made to " + repo + " project",
+		})
+	}
+
+	if _, err := b.Client.Rest().UpdateApplicationRoleConnectionMetadata(b.Client.ApplicationID(), linkedRoles); err != nil {
+		b.Logger.Errorf("Failed to register linked roles: %s", err)
 	}
 }
 
