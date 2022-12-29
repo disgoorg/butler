@@ -17,7 +17,7 @@ var templateFS embed.FS
 
 func HandleLogin(b *butler.Butler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, b.OAuth2.GenerateAuthorizationURL(b.Config.BaseURL+"/github", discord.PermissionsNone, 0, false, discord.OAuth2ScopeGuildsMembersRead, discord.OAuth2ScopeConnections), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, b.OAuth2.GenerateAuthorizationURL(b.Config.BaseURL+"/github", discord.PermissionsNone, 0, false, discord.OAuth2ScopeGuildsMembersRead, discord.OAuth2ScopeConnections, discord.OAuth2ScopeRoleConnectionsWrite), http.StatusTemporaryRedirect)
 	}
 }
 
@@ -76,7 +76,7 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 					if contributor.Contributions != nil {
 						contributions = *contributor.Contributions
 					}
-					metadata[repo] = strconv.Itoa(contributions)
+					metadata[strings.ReplaceAll(repo, "/", "_")+"_contributions"] = strconv.Itoa(contributions)
 					break
 				}
 			}
