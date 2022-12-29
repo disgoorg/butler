@@ -69,6 +69,8 @@ func main() {
 		cr.HandleAutocomplete("/", commands.HandleDocsAutocomplete(b))
 	})
 	cr.HandleComponent("docs_action", components.HandleDocsAction(b))
+	cr.HandleComponent("eval/rerun/{message_id}", components.HandleEvalRerunAction(b))
+	cr.HandleComponent("eval/delete", components.HandleEvalDeleteAction)
 	cr.HandleCommand("/eval", commands.HandleEval(b))
 	cr.HandleCommand("/info", commands.HandleInfo(b))
 	cr.HandleCommand("/ping", commands.HandlePing)
