@@ -9,7 +9,6 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/hhhapz/doc"
@@ -36,7 +35,7 @@ var docsCommand = discord.SlashCommandCreate{
 }
 
 func HandleDocs(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 
 		ex, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -57,7 +56,7 @@ func HandleDocs(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleDocsAutocomplete(b *butler.Butler) handler.AutocompleteHandler {
-	return func(client bot.Client, e *handler.AutocompleteEvent) error {
+	return func(e *handler.AutocompleteEvent) error {
 		moduleOption, moduleOptionOk := e.Data.Option("module")
 		if moduleOptionOk && moduleOption.Focused {
 			return handleModuleAutocomplete(b, e, e.Data.String("module"))

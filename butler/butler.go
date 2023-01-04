@@ -21,8 +21,8 @@ import (
 	"github.com/disgoorg/disgo/oauth2"
 	"github.com/disgoorg/disgo/webhook"
 	"github.com/disgoorg/log"
+	"github.com/disgoorg/paginator"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/disgoorg/utils/paginator"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-github/v44/github"
 	"github.com/hhhapz/doc"
@@ -36,7 +36,7 @@ func New(logger log.Logger, version string, config Config) *Butler {
 		Config:       config,
 		Logger:       logger,
 		Webhooks:     map[string]webhook.Client{},
-		Paginator:    paginator.NewManager(),
+		Paginator:    paginator.New(),
 		Version:      version,
 	}
 }

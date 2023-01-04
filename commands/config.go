@@ -6,7 +6,6 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"golang.org/x/exp/slices"
@@ -131,7 +130,7 @@ var configCommand = discord.SlashCommandCreate{
 }
 
 func HandleAliasesAdd(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		module := data.String("module")
 		alias := data.String("alias")
@@ -147,7 +146,7 @@ func HandleAliasesAdd(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleAliasesRemove(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		alias := data.String("alias")
 
@@ -164,7 +163,7 @@ func HandleAliasesRemove(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleAliasesList(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		var message string
 		for alias, module := range b.Config.Docs.Aliases {
 			message += fmt.Sprintf("•`%s` -> `%s`\n", alias, module)
@@ -174,7 +173,7 @@ func HandleAliasesList(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleReleasesAdd(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 		channelID := data.Snowflake("channel")
@@ -202,7 +201,7 @@ func HandleReleasesAdd(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleReleasesRemove(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
@@ -219,7 +218,7 @@ func HandleReleasesRemove(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleReleasesList(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		var message string
 		for name := range b.Config.GithubReleases {
 			message += fmt.Sprintf("•`%s`\n", name)
@@ -229,7 +228,7 @@ func HandleReleasesList(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
@@ -242,7 +241,7 @@ func HandleContributorReposAdd(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := data.String("name")
 
@@ -261,7 +260,7 @@ func HandleContributorReposRemove(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleContributorReposList(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		var message string
 		for _, name := range b.Config.ContributorRepos {
 			message += fmt.Sprintf("•`%s`\n", name)

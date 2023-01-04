@@ -4,7 +4,6 @@ import (
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 )
@@ -15,7 +14,7 @@ var infoCommand = discord.SlashCommandCreate{
 }
 
 func HandleInfo(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		user, _ := b.Client.Caches().SelfUser()
 		return e.CreateMessage(discord.NewMessageCreateBuilder().
 			SetEmbeds(discord.NewEmbedBuilder().

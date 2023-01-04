@@ -9,10 +9,9 @@ import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
 	"github.com/disgoorg/disgo-butler/db"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/utils/paginator"
+	"github.com/disgoorg/paginator"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
@@ -85,7 +84,7 @@ var tagsCommand = discord.SlashCommandCreate{
 }
 
 func HandleCreateTag(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -103,7 +102,7 @@ func HandleCreateTag(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleEditTag(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -125,7 +124,7 @@ func HandleEditTag(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleDeleteTag(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 
@@ -147,7 +146,7 @@ func HandleDeleteTag(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleTagInfo(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		data := e.SlashCommandInteractionData()
 		name := formatTagName(data.String("name"))
 		tag, err := b.DB.Get(*e.GuildID(), name)
@@ -182,7 +181,7 @@ func HandleTagInfo(b *butler.Butler) handler.CommandHandler {
 }
 
 func HandleListTags(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		tags, err := b.DB.GetAll(*e.GuildID())
 		if err != nil {
 			return common.RespondMessageErr(e.Respond, "Failed to list tags: ", err)
@@ -205,19 +204,19 @@ func HandleListTags(b *butler.Butler) handler.CommandHandler {
 			pages = append(pages, curPage)
 		}
 
-		return b.Paginator.Create(e.Respond, &paginator.Paginator{
+		return b.Paginator.Create(e.Respond, paginator.Pages{
+			ID: e.ID().String(),
 			PageFunc: func(page int, embed *discord.EmbedBuilder) {
 				embed.SetDescription(pages[page])
 			},
-			MaxPages:        len(pages),
-			ExpiryLastUsage: true,
-			ID:              e.ID().String(),
-		})
+			Pages:      len(pages),
+			ExpireMode: paginator.ExpireModeAfterLastUsage,
+		}, false)
 	}
 }
 
 func HandleTagListAutoComplete(b *butler.Butler, filterTags bool) handler.AutocompleteHandler {
-	return func(client bot.Client, e *handler.AutocompleteEvent) error {
+	return func(e *handler.AutocompleteEvent) error {
 		name := formatTagName(e.Data.String("name"))
 
 		var (

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/disgo/rest"
@@ -15,7 +14,7 @@ var pingCommand = discord.SlashCommandCreate{
 	Description: "Responds with pong",
 }
 
-func HandlePing(client bot.Client, e *handler.CommandEvent) error {
+func HandlePing(e *handler.CommandEvent) error {
 	var gatewayPing string
 	if e.Client().HasGateway() {
 		gatewayPing = e.Client().Gateway().Latency().String()

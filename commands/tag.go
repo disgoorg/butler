@@ -5,7 +5,6 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 )
@@ -25,7 +24,7 @@ var tagCommand = discord.SlashCommandCreate{
 }
 
 func HandleTag(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		tag, err := b.DB.GetAndIncrement(*e.GuildID(), e.SlashCommandInteractionData().String("name"))
 		if err == sql.ErrNoRows {
 			return common.RespondErrMessage(e.Respond, "Tag not found")

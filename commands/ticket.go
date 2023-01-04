@@ -3,7 +3,6 @@ package commands
 import (
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
@@ -16,7 +15,7 @@ var ticketCommand = discord.SlashCommandCreate{
 }
 
 func HandleCloseTicket(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		b.ModMail.Mu.Lock()
 		defer b.ModMail.Mu.Unlock()
 

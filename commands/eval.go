@@ -22,9 +22,9 @@ var evalCommand = discord.MessageCommandCreate{
 }
 
 func HandleEval(b *butler.Butler) handler.CommandHandler {
-	return func(client bot.Client, e *handler.CommandEvent) error {
+	return func(e *handler.CommandEvent) error {
 		message := e.MessageCommandInteractionData().TargetMessage()
-		return Eval(b, client, e.BaseInteraction, e.Respond, message.Content, message.ID, false)
+		return Eval(b, e.Client(), e.BaseInteraction, e.Respond, message.Content, message.ID, false)
 	}
 }
 

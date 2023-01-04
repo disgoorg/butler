@@ -6,13 +6,12 @@ import (
 
 	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo-butler/common"
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 )
 
 func HandleDocsAction(b *butler.Butler) handler.ComponentHandler {
-	return func(client bot.Client, e *handler.ComponentEvent) error {
+	return func(e *handler.ComponentEvent) error {
 		action := e.StringSelectMenuInteractionData().Values[0]
 		if action == "delete" {
 			if e.Message.Interaction.User.ID != e.User().ID && e.Member().Permissions.Missing(discord.PermissionManageMessages) {
