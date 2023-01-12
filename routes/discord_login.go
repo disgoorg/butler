@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/disgoorg/disgo-butler/butler"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/json"
+
+	"github.com/disgoorg/disgo-butler/butler"
 )
 
 //go:embed templates/*
@@ -84,8 +86,9 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 		}
 
 		if _, err = b.OAuth2.UpdateApplicationRoleConnection(session, b.Client.ApplicationID(), discord.ApplicationRoleConnectionUpdate{
-			PlatformName: &conn.Name,
-			Metadata:     &metadata,
+			PlatformName:     json.Ptr("GitHub"),
+			PlatformUsername: &conn.Name,
+			Metadata:         &metadata,
 		}); err != nil {
 			httpError(w, err)
 			return
