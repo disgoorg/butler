@@ -29,13 +29,13 @@ func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
 		payload, err := github.ValidatePayload(r, []byte(b.Config.GithubWebhookSecret))
 		if err != nil {
 			b.Logger.Errorf("Failed to validate payload: %s", err)
-			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		event, err := github.ParseWebHook(github.WebHookType(r), payload)
 		if err != nil {
 			b.Logger.Errorf("Failed to parse webhook: %s", err)
-			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		switch e := event.(type) {
@@ -44,7 +44,7 @@ func HandleGithubWebhook(b *butler.Butler) http.HandlerFunc {
 		}
 		if err != nil {
 			b.Logger.Errorf("Failed to process webhook: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
