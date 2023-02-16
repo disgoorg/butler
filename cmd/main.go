@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 
-	"github.com/disgoorg/disgo-butler/butler"
-	"github.com/disgoorg/disgo-butler/commands"
-	"github.com/disgoorg/disgo-butler/components"
-	"github.com/disgoorg/disgo-butler/routes"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/disgoorg/disgo-butler/butler"
+	"github.com/disgoorg/disgo-butler/commands"
+	"github.com/disgoorg/disgo-butler/components"
+	"github.com/disgoorg/disgo-butler/routes"
 )
 
 const version = "development"
@@ -49,47 +50,47 @@ func main() {
 	cr := handler.New()
 	cr.Route("/config", func(cr handler.Router) {
 		cr.Route("/aliases", func(cr handler.Router) {
-			cr.HandleCommand("/add", commands.HandleAliasesAdd(b))
-			cr.HandleCommand("/remove", commands.HandleAliasesRemove(b))
-			cr.HandleCommand("/list", commands.HandleAliasesList(b))
+			cr.Command("/add", commands.HandleAliasesAdd(b))
+			cr.Command("/remove", commands.HandleAliasesRemove(b))
+			cr.Command("/list", commands.HandleAliasesList(b))
 		})
 		cr.Route("/releases", func(cr handler.Router) {
-			cr.HandleCommand("/add", commands.HandleReleasesAdd(b))
-			cr.HandleCommand("/remove", commands.HandleReleasesRemove(b))
-			cr.HandleCommand("/list", commands.HandleReleasesList(b))
+			cr.Command("/add", commands.HandleReleasesAdd(b))
+			cr.Command("/remove", commands.HandleReleasesRemove(b))
+			cr.Command("/list", commands.HandleReleasesList(b))
 		})
 		cr.Route("/contributor-repos", func(cr handler.Router) {
-			cr.HandleCommand("/add", commands.HandleContributorReposAdd(b))
-			cr.HandleCommand("/remove", commands.HandleContributorReposRemove(b))
-			cr.HandleCommand("/list", commands.HandleContributorReposList(b))
+			cr.Command("/add", commands.HandleContributorReposAdd(b))
+			cr.Command("/remove", commands.HandleContributorReposRemove(b))
+			cr.Command("/list", commands.HandleContributorReposList(b))
 		})
 	})
 	cr.Route("/docs", func(cr handler.Router) {
-		cr.HandleCommand("/", commands.HandleDocs(b))
-		cr.HandleAutocomplete("/", commands.HandleDocsAutocomplete(b))
+		cr.Command("/", commands.HandleDocs(b))
+		cr.Autocomplete("/", commands.HandleDocsAutocomplete(b))
 	})
-	cr.HandleComponent("docs_action", components.HandleDocsAction(b))
-	cr.HandleComponent("eval/rerun/{message_id}", components.HandleEvalRerunAction(b))
-	cr.HandleComponent("eval/delete", components.HandleEvalDeleteAction)
-	cr.HandleCommand("/eval", commands.HandleEval(b))
-	cr.HandleCommand("/info", commands.HandleInfo(b))
-	cr.HandleCommand("/ping", commands.HandlePing)
+	cr.Component("docs_action", components.HandleDocsAction(b))
+	cr.Component("eval/rerun/{message_id}", components.HandleEvalRerunAction(b))
+	cr.Component("eval/delete", components.HandleEvalDeleteAction)
+	cr.Command("/eval", commands.HandleEval(b))
+	cr.Command("/info", commands.HandleInfo(b))
+	cr.Command("/ping", commands.HandlePing)
 	cr.Route("/tag", func(cr handler.Router) {
-		cr.HandleCommand("/", commands.HandleTag(b))
-		cr.HandleAutocomplete("/", commands.HandleTagListAutoComplete(b, false))
+		cr.Command("/", commands.HandleTag(b))
+		cr.Autocomplete("/", commands.HandleTagListAutoComplete(b, false))
 	})
 	cr.Route("/tags", func(cr handler.Router) {
-		cr.HandleCommand("/create", commands.HandleCreateTag(b))
-		cr.HandleCommand("/edit", commands.HandleEditTag(b))
-		cr.HandleCommand("/delete", commands.HandleDeleteTag(b))
-		cr.HandleCommand("/info", commands.HandleTagInfo(b))
-		cr.HandleCommand("/list", commands.HandleListTags(b))
-		cr.HandleAutocomplete("/edit", commands.HandleTagListAutoComplete(b, true))
-		cr.HandleAutocomplete("/delete", commands.HandleTagListAutoComplete(b, true))
-		cr.HandleAutocomplete("/info", commands.HandleTagListAutoComplete(b, false))
-		cr.HandleAutocomplete("/list", commands.HandleTagListAutoComplete(b, false))
+		cr.Command("/create", commands.HandleCreateTag(b))
+		cr.Command("/edit", commands.HandleEditTag(b))
+		cr.Command("/delete", commands.HandleDeleteTag(b))
+		cr.Command("/info", commands.HandleTagInfo(b))
+		cr.Command("/list", commands.HandleListTags(b))
+		cr.Autocomplete("/edit", commands.HandleTagListAutoComplete(b, true))
+		cr.Autocomplete("/delete", commands.HandleTagListAutoComplete(b, true))
+		cr.Autocomplete("/info", commands.HandleTagListAutoComplete(b, false))
+		cr.Autocomplete("/list", commands.HandleTagListAutoComplete(b, false))
 	})
-	cr.HandleCommand("/close-ticket", commands.HandleCloseTicket(b))
+	cr.Command("/close-ticket", commands.HandleCloseTicket(b))
 	b.SetupBot(cr)
 	b.SetupDB(*shouldSyncDBTables)
 	b.RegisterLinkedRoles()

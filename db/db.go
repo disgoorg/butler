@@ -34,6 +34,9 @@ func SetupDatabase(shouldSyncDBTables bool, config Config) (DB, error) {
 		if _, err := db.NewCreateTable().Model((*Tag)(nil)).Exec(context.TODO()); err != nil {
 			return nil, err
 		}
+		if _, err := db.NewCreateTable().Model((*Contributor)(nil)).Exec(context.TODO()); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sqlDB{db: db}, nil
@@ -41,6 +44,7 @@ func SetupDatabase(shouldSyncDBTables bool, config Config) (DB, error) {
 
 type DB interface {
 	TagsDB
+	ContributorsDB
 	Close()
 }
 

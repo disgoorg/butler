@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/disgoorg/disgo"
-	"github.com/disgoorg/disgo-butler/db"
-	"github.com/disgoorg/disgo-butler/mod_mail"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
@@ -28,6 +28,9 @@ import (
 	"github.com/hhhapz/doc"
 	"github.com/hhhapz/doc/godocs"
 	gopiston "github.com/milindmadhukar/go-piston"
+
+	"github.com/disgoorg/disgo-butler/db"
+	"github.com/disgoorg/disgo-butler/mod_mail"
 )
 
 func New(logger log.Logger, version string, config Config) *Butler {
@@ -148,6 +151,10 @@ func (b *Butler) StartAndBlock() {
 		b.Logger.Errorf("Failed to start http server: %s", err)
 	}
 
+	contributorCtx, contributorCancel := context.WithCancel(context.Background())
+	defer contributorCancel()
+	go b.RefreshContributorRoles(contributorCtx)
+
 	defer func() {
 		b.Logger.Info("Shutting down...")
 		b.Client.Close(context.TODO())
@@ -172,4 +179,69 @@ func (b *Butler) OnReady(_ *events.Ready) {
 	); err != nil {
 		b.Logger.Errorf("Failed to set presence: %s", err)
 	}
+}
+
+func (b *Butler) RefreshContributorRoles(ctx context.Context) {
+	for {
+		select {
+		case <-time.After(time.Hour):
+			b.Logger.Info("Refreshing contributor roles...")
+			if err := b.UpdateContributorRoles(); err != nil {
+				b.Logger.Errorf("Failed to update contributor roles: %s", err)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (b *Butler) UpdateContributorRoles() error {
+	contributors, err := b.DB.GetAllContributors()
+	if err != nil {
+		return err
+	}
+
+	contributorRepos := map[string][]*github.Contributor{}
+	for _, repo := range b.Config.ContributorRepos {
+		values := strings.SplitN(repo, "/", 2)
+		githubContributors, _, err := b.GitHubClient.Repositories.ListContributors(context.TODO(), values[0], values[1], nil)
+		if err != nil {
+			return err
+		}
+		contributorRepos[repo] = githubContributors
+	}
+
+	for _, contributor := range contributors {
+		metadata, err := b.GetContributorMetadata(contributor.Username, contributorRepos)
+		if err != nil {
+			b.Logger.Errorf("Failed to get contributor metadata for %s: %s", contributor.Username, err)
+			continue
+		}
+
+		session := newSession(contributor)
+		if _, err = b.OAuth2.UpdateApplicationRoleConnection(session, b.Client.ApplicationID(), discord.ApplicationRoleConnectionUpdate{
+			Metadata: &metadata,
+		}); err != nil {
+			b.Logger.Errorf("Failed to update contributor roles: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (b *Butler) GetContributorMetadata(username string, contributorRepos map[string][]*github.Contributor) (map[string]string, error) {
+	metadata := make(map[string]string)
+	for repo, contributors := range contributorRepos {
+		for _, contributor := range contributors {
+			if contributor.GetLogin() == username {
+				contributions := 0
+				if contributor.Contributions != nil {
+					contributions = *contributor.Contributions
+				}
+				metadata[strings.ReplaceAll(repo, "/", "_")+"_contributions"] = strconv.Itoa(contributions)
+				break
+			}
+		}
+	}
+	return metadata, nil
 }

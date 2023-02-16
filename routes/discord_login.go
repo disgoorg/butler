@@ -1,15 +1,14 @@
 package routes
 
 import (
-	"context"
 	"embed"
 	"html/template"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/json"
+	"github.com/google/go-github/v44/github"
 
 	"github.com/disgoorg/disgo-butler/butler"
 )
@@ -63,26 +62,26 @@ func HandleGithub(b *butler.Butler) http.HandlerFunc {
 			return
 		}
 
-		metadata := make(map[string]string)
+		if err = b.DB.AddContributor(conn.Name, session); err != nil {
+			httpError(w, err)
+			return
+		}
+
+		contributorRepos := map[string][]*github.Contributor{}
 		for _, repo := range b.Config.ContributorRepos {
 			values := strings.SplitN(repo, "/", 2)
-			contributors, _, err := b.GitHubClient.Repositories.ListContributors(context.TODO(), values[0], values[1], nil)
+			githubContributors, _, err := b.GitHubClient.Repositories.ListContributors(r.Context(), values[0], values[1], nil)
 			if err != nil {
 				httpError(w, err)
 				return
 			}
-			for _, contributor := range contributors {
-				if contributor.GetLogin() == conn.Name {
-					// need at least 10 contributions
-					contributions := 0
-					if contributor.Contributions != nil {
-						contributions = *contributor.Contributions
-					}
-					metadata[strings.ReplaceAll(repo, "/", "_")+"_contributions"] = strconv.Itoa(contributions)
-					break
-				}
-			}
+			contributorRepos[repo] = githubContributors
+		}
 
+		metadata, err := b.GetContributorMetadata(conn.Name, contributorRepos)
+		if err != nil {
+			httpError(w, err)
+			return
 		}
 
 		if _, err = b.OAuth2.UpdateApplicationRoleConnection(session, b.Client.ApplicationID(), discord.ApplicationRoleConnectionUpdate{
