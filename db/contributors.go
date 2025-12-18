@@ -40,6 +40,12 @@ func (s *sqlDB) AddContributor(username string, session oauth2.Session) (err err
 			TokenType:    session.TokenType,
 			Expiration:   session.Expiration,
 		}).
+		On("CONFLICT (username) DO UPDATE").
+		Set("access_token = EXCLUDED.access_token").
+		Set("refresh_token = EXCLUDED.refresh_token").
+		Set("scopes = EXCLUDED.scopes").
+		Set("token_type = EXCLUDED.token_type").
+		Set("expiration = EXCLUDED.expiration").
 		Exec(context.TODO())
 	return
 }
