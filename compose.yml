@@ -1,0 +1,16 @@
+services:
+  bot:
+    build: .
+    volumes:
+      - ./config.toml:/var/lib/config.toml
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: disgo-butler
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: disgo-butler
+    ports:
+      - "5432:5432"

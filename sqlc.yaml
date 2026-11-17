@@ -1,0 +1,43 @@
+version: "2"
+sql:
+  - engine: postgresql
+    queries: server/database/queries
+    schema: server/database/migrations
+    gen:
+      go:
+        package: sqlc
+        out: server/database/sqlc
+        sql_package: pgx/v5
+        emit_empty_slices: true
+        omit_unused_structs: true
+        overrides:
+          - db_type: timestamptz
+            go_type: time.Time
+          - column: tags.guild_id
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: tags.owner_id
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: github_releases.webhook_id
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: github_releases.ping_role
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: mod_mail_threads.channel_id
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: mod_mail_threads.thread_id
+            go_type:
+              import: github.com/disgoorg/snowflake/v2
+              type: ID
+          - column: contributors.scopes
+            go_type:
+              import: github.com/disgoorg/disgo-butler/server/database/dbtype
+              type: OAuthScopes

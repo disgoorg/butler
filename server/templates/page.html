@@ -1,0 +1,103 @@
+{{ define "page" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ .Title }}</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --accent: #5865f2;
+            --page: light-dark(#f2f3f5, #1e1f22);
+            --card: light-dark(#ffffff, #2b2d31);
+            --text: light-dark(#1e1f22, #f2f3f5);
+            --muted: light-dark(#4e5058, #b5bac1);
+            --line: light-dark(#e3e5e8, #3f4147);
+            --danger: light-dark(#da373c, #fa777c);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            background: var(--page);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            line-height: 1.5;
+        }
+
+        main {
+            width: min(100%, 36rem);
+        }
+
+        article {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-top: 4px solid var(--accent);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        article.failed { border-top-color: var(--danger); }
+
+        p.mark {
+            margin: 0 0 0.5rem;
+            color: var(--accent);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: 1.75rem;
+            line-height: 1.2;
+        }
+
+        p { margin: 0 0 1rem; color: var(--muted); }
+
+        ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        li + li { margin-top: 0.5rem; }
+
+        a {
+            color: var(--accent);
+            text-decoration-thickness: 1px;
+            text-underline-offset: 0.15em;
+        }
+
+        a:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <article{{ if .Failed }} class="failed"{{ end }}>
+        <p class="mark">DisGo Butler</p>
+        <h1>{{ .Title }}</h1>
+        <p>{{ .Message }}</p>
+        {{ if .Repos }}
+        <ul>
+            {{ range .Repos }}
+            <li><a href="https://github.com/{{ . }}">{{ . }}</a></li>
+            {{ end }}
+        </ul>
+        {{ end }}
+    </article>
+</main>
+</body>
+</html>
+{{ end }}

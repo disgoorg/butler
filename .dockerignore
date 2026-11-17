@@ -1,5 +1,6 @@
-.editorconfig
+.github
+.idea
+.vscode
+config.toml
 README.md
 LICENSE
-config.json
-config.json.example
