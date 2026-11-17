@@ -1,0 +1,30 @@
+dev_mode = false
+guild_id = 0
+token = ""
+secret = ""
+base_url = "http://localhost:8080"
+github_webhook_secret = ""
+
+[log]
+level = "info"
+format = "text"
+add_source = false
+
+[database]
+host = "localhost"
+port = 5432
+username = "disgo-butler"
+password = "password"
+database = "disgo-butler"
+ssl_mode = "disable"
+
+[interactions]
+url = "/interactions"
+address = ":8080"
+public_key = ""
+
+[mod_mail]
+role_id = 0
+channel_id = 0
+webhook_id = 0
+webhook_token = ""

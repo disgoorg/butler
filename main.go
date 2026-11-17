@@ -1,106 +1,102 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"log/slog"
+	"os"
+	"os/signal"
+	"runtime/debug"
+	"syscall"
 
-	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/go-chi/chi/v5"
 
-	"github.com/disgoorg/disgo-butler/butler"
-	"github.com/disgoorg/disgo-butler/commands"
-	"github.com/disgoorg/disgo-butler/components"
-	"github.com/disgoorg/disgo-butler/routes"
+	"github.com/disgoorg/disgo-butler/server"
 )
-
-const version = "development"
-
-var (
-	shouldSyncDBTables *bool
-	shouldSyncCommands *bool
-)
-
-func init() {
-	shouldSyncDBTables = flag.Bool("sync-db", false, "Whether to sync the database tables")
-	shouldSyncCommands = flag.Bool("sync-commands", false, "Whether to sync the commands")
-	flag.Parse()
-}
 
 func main() {
-	cfg, err := butler.LoadConfig()
+	configPath := flag.String("config", "config.toml", "path to the config file")
+	syncCommands := flag.Bool("sync-commands", false, "sync application commands on startup")
+	flag.Parse()
+
+	cfg, unknown, err := server.LoadConfig(*configPath)
 	if err != nil {
-		panic("failed to load config: " + err.Error())
+		slog.Error("failed to load config", slog.String("path", *configPath), slog.Any("err", err))
+		os.Exit(1)
+	}
+	setupLogger(cfg.Log)
+	if len(unknown) > 0 {
+		slog.Warn("unknown config keys", slog.Any("keys", unknown))
 	}
 
-	logger := log.New(log.LstdFlags | log.Lshortfile)
-	logger.SetLevel(cfg.LogLevel)
-	logger.Info("starting Disgo-Butler...")
+	version := buildVersion()
+	slog.Info("starting DisGo-Butler", slog.String("version", version))
 
-	b := butler.New(logger, version, *cfg)
+	srv, err := server.New(context.Background(), cfg, version)
+	if err != nil {
+		slog.Error("failed to start", slog.Any("err", err))
+		os.Exit(1)
+	}
+	defer srv.Stop()
 
-	r := chi.NewRouter()
-	r.Route("/github", func(r chi.Router) {
-		r.Get("/", routes.HandleGithub(b))
-		r.Get("/login", routes.HandleLogin(b))
-		r.Post("/webhook", routes.HandleGithubWebhook(b))
-	})
-	b.SetupRoutes(r)
-
-	cr := handler.New()
-	cr.Route("/config", func(cr handler.Router) {
-		cr.Route("/aliases", func(cr handler.Router) {
-			cr.Command("/add", commands.HandleAliasesAdd(b))
-			cr.Command("/remove", commands.HandleAliasesRemove(b))
-			cr.Command("/list", commands.HandleAliasesList(b))
-		})
-		cr.Route("/releases", func(cr handler.Router) {
-			cr.Command("/add", commands.HandleReleasesAdd(b))
-			cr.Command("/remove", commands.HandleReleasesRemove(b))
-			cr.Command("/list", commands.HandleReleasesList(b))
-		})
-		cr.Route("/contributor-repos", func(cr handler.Router) {
-			cr.Command("/add", commands.HandleContributorReposAdd(b))
-			cr.Command("/remove", commands.HandleContributorReposRemove(b))
-			cr.Command("/list", commands.HandleContributorReposList(b))
-		})
-	})
-	cr.Route("/docs", func(cr handler.Router) {
-		cr.Command("/", commands.HandleDocs(b))
-		cr.Autocomplete("/", commands.HandleDocsAutocomplete(b))
-	})
-	cr.Component("/docs_action", components.HandleDocsAction(b))
-	cr.Component("/eval/rerun/{message_id}", components.HandleEvalRerunAction(b))
-	cr.Component("/eval/delete", components.HandleEvalDeleteAction)
-	cr.Command("/eval", commands.HandleEval(b))
-	cr.Command("/info", commands.HandleInfo(b))
-	cr.Command("/ping", commands.HandlePing)
-	cr.Route("/tag", func(cr handler.Router) {
-		cr.Command("/", commands.HandleTag(b))
-		cr.Autocomplete("/", commands.HandleTagListAutoComplete(b, false))
-	})
-	cr.Route("/tags", func(cr handler.Router) {
-		cr.Command("/create", commands.HandleCreateTag(b))
-		cr.Command("/edit", commands.HandleEditTag(b))
-		cr.Command("/delete", commands.HandleDeleteTag(b))
-		cr.Command("/info", commands.HandleTagInfo(b))
-		cr.Command("/list", commands.HandleListTags(b))
-		cr.Autocomplete("/edit", commands.HandleTagListAutoComplete(b, true))
-		cr.Autocomplete("/delete", commands.HandleTagListAutoComplete(b, true))
-		cr.Autocomplete("/info", commands.HandleTagListAutoComplete(b, false))
-		cr.Autocomplete("/list", commands.HandleTagListAutoComplete(b, false))
-	})
-	cr.Command("/close-ticket", commands.HandleCloseTicket(b))
-	b.SetupBot(cr)
-	b.SetupDB(*shouldSyncDBTables)
-	b.RegisterLinkedRoles()
-
-	if *shouldSyncCommands {
+	if *syncCommands {
 		var guildIDs []snowflake.ID
 		if cfg.DevMode {
 			guildIDs = append(guildIDs, cfg.GuildID)
 		}
-		b.SyncCommands(commands.Commands, guildIDs...)
+		if err = srv.SyncCommands(guildIDs); err != nil {
+			slog.Error("failed to sync commands", slog.Any("err", err))
+		}
 	}
-	b.StartAndBlock()
+
+	if err = srv.Start(context.Background()); err != nil {
+		slog.Error("failed to open connections", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	slog.Info("client is running")
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	<-signals
+}
+
+func buildVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+
+	var revision, modified string
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			revision = setting.Value
+		case "vcs.modified":
+			modified = setting.Value
+		}
+	}
+	if revision == "" {
+		return "unknown"
+	}
+	if modified == "true" {
+		return revision + "-dirty"
+	}
+	return revision
+}
+
+func setupLogger(cfg server.LogConfig) {
+	options := &slog.HandlerOptions{
+		AddSource: cfg.AddSource,
+		Level:     cfg.Level,
+	}
+	var handler slog.Handler
+	if cfg.Format == "json" {
+		handler = slog.NewJSONHandler(os.Stdout, options)
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, options)
+	}
+	slog.SetDefault(slog.New(handler))
 }
